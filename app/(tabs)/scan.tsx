@@ -66,8 +66,10 @@ export default function ScanScreen() {
           <Ionicons name="sparkles-outline" size={16} color={colors.primaryDeep} />
           <Text style={styles.heroBadgeText}>AI-assisted analysis</Text>
         </View>
-        <Text style={styles.heroTitle}>Feed the formula into DermaIQ.</Text>
-        <Text style={styles.heroBody}>
+        <Text style={styles.heroTitle} lineBreakStrategyIOS="standard">
+          Feed the formula into DermaIQ.
+        </Text>
+        <Text style={styles.heroBody} lineBreakStrategyIOS="standard">
           Ingredients mode is live now. Photo and barcode remain visible as the next step in the product
           experience.
         </Text>
@@ -93,9 +95,13 @@ export default function ScanScreen() {
             <View style={styles.inputHeader}>
               <View style={styles.inputHeaderCopy}>
                 <Text style={styles.inputEyebrow}>Ingredients mode</Text>
-                <Text style={styles.inputTitle}>Paste your ingredient list here...</Text>
+                <Text style={styles.inputTitle} lineBreakStrategyIOS="standard">
+                  Paste your ingredient list here...
+                </Text>
               </View>
-              <Text style={styles.inputHint}>Comma-separated ingredients work best for the current DermaIQ parser.</Text>
+              <Text style={styles.inputHint} lineBreakStrategyIOS="standard">
+                Comma-separated ingredients work best for the current DermaIQ parser.
+              </Text>
             </View>
 
             <View style={[styles.textInputShell, isInputFocused && styles.textInputShellFocused]}>
@@ -122,7 +128,9 @@ export default function ScanScreen() {
             <View style={styles.inputActionsRow}>
               <Pressable onPress={() => setIngredientInput(sampleIngredientInput)} style={({ pressed }) => [styles.sampleAction, pressed && styles.sampleActionPressed]}>
                 <Ionicons name="flask-outline" size={16} color={colors.text} />
-                <Text style={styles.sampleActionText}>Try demo ingredients</Text>
+                <Text style={styles.sampleActionText} lineBreakStrategyIOS="standard">
+                  Try demo ingredients
+                </Text>
               </Pressable>
 
               <View style={styles.previewRow}>
@@ -137,29 +145,31 @@ export default function ScanScreen() {
               </View>
             </View>
 
-            <Text style={styles.helperText}>
+            <Text style={styles.helperText} lineBreakStrategyIOS="standard">
               DermaIQ quietly checks your list against the current ingredient database and flags anything it
               cannot confidently identify yet.
             </Text>
           </LinearGradient>
         ) : (
           <View style={styles.comingSoonModule}>
-            <View style={styles.comingSoonIcon}>
-              <Ionicons
-                name={mode === 'Photo' ? 'camera-outline' : 'barcode-outline'}
-                size={20}
-                color={colors.primaryDeep}
-              />
-            </View>
-            <View style={styles.comingSoonCopy}>
-              <Text style={styles.comingSoonTitle}>
-                {mode === 'Photo' ? 'Photo analysis arrives soon' : 'Barcode lookup arrives soon'}
-              </Text>
-              <Text style={styles.comingSoonBody}>
-                {mode === 'Photo'
-                  ? 'For now, switch to Ingredients to run a real product analysis.'
-                  : 'For now, switch to Ingredients to analyze a formula manually.'}
-              </Text>
+            <View style={styles.comingSoonTopRow}>
+              <View style={styles.comingSoonIcon}>
+                <Ionicons
+                  name={mode === 'Photo' ? 'camera-outline' : 'barcode-outline'}
+                  size={20}
+                  color={colors.primaryDeep}
+                />
+              </View>
+              <View style={styles.comingSoonCopy}>
+                <Text style={styles.comingSoonTitle} lineBreakStrategyIOS="standard">
+                  {mode === 'Photo' ? 'Photo analysis arrives soon' : 'Barcode lookup arrives soon'}
+                </Text>
+                <Text style={styles.comingSoonBody} lineBreakStrategyIOS="standard">
+                  {mode === 'Photo'
+                    ? 'For now, switch to Ingredients to run a real product analysis.'
+                    : 'For now, switch to Ingredients to analyze a formula manually.'}
+                </Text>
+              </View>
             </View>
             <Pressable onPress={() => setMode('Ingredients')} style={({ pressed }) => [styles.switchPill, pressed && styles.switchPillPressed]}>
               <Text style={styles.switchPillText}>Use Ingredients</Text>
@@ -251,11 +261,11 @@ const styles = StyleSheet.create({
     ...typography.sectionTitle,
     fontSize: 28,
     lineHeight: 34,
-    maxWidth: 320,
+    maxWidth: 360,
   },
   heroBody: {
     ...typography.body,
-    maxWidth: 360,
+    maxWidth: 380,
   },
   scanShell: {
     gap: spacing.lg,
@@ -330,7 +340,7 @@ const styles = StyleSheet.create({
   inputHint: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    maxWidth: 320,
+    maxWidth: 380,
   },
   textInputShell: {
     borderRadius: radius.lg,
@@ -362,9 +372,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   inputActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     gap: spacing.md,
   },
   sampleAction: {
@@ -377,6 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.border,
+    alignSelf: 'flex-start',
   },
   sampleActionPressed: {
     opacity: 0.96,
@@ -389,6 +397,7 @@ const styles = StyleSheet.create({
   previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   previewChip: {
@@ -413,17 +422,20 @@ const styles = StyleSheet.create({
   helperText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    maxWidth: 340,
+    maxWidth: 400,
   },
   comingSoonModule: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     gap: spacing.md,
     padding: spacing.lg,
     borderRadius: radius.lg,
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  comingSoonTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
   },
   comingSoonIcon: {
     width: 42,
@@ -442,6 +454,7 @@ const styles = StyleSheet.create({
   comingSoonBody: {
     ...typography.bodySmall,
     marginTop: spacing.xxs,
+    maxWidth: 360,
   },
   switchPill: {
     paddingHorizontal: spacing.md,
@@ -450,6 +463,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
     borderColor: '#D1DECF',
+    alignSelf: 'flex-start',
   },
   switchPillPressed: {
     opacity: 0.96,
