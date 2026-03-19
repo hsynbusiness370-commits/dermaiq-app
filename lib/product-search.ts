@@ -1,5 +1,6 @@
 import { fetchExternalProducts, getExternalProductDisplayName, normalizeExternalProduct } from './external-product-fetch';
 import { productCatalog } from './product-catalog';
+import { saveProducts, searchStoredProducts } from './product-storage';
 import { ProductCatalogEntry, ProductSearchResponse } from './types';
 
 function normalizeValue(value: string) {
@@ -83,6 +84,17 @@ export async function searchProducts(query: string): Promise<ProductSearchRespon
     };
   }
 
+  const storedResults = await searchStoredProducts(trimmedQuery);
+
+  if (storedResults.length > 0) {
+    return {
+      query: trimmedQuery,
+      status: 'found',
+      source: 'stored',
+      results: storedResults,
+    };
+  }
+
   let externalRawResults = [] as Awaited<ReturnType<typeof fetchExternalProducts>>;
 
   try {
@@ -102,6 +114,8 @@ export async function searchProducts(query: string): Promise<ProductSearchRespon
     .filter((result): result is ProductCatalogEntry => Boolean(result));
 
   if (externalResults.length > 0) {
+    await saveProducts(externalResults);
+
     return {
       query: trimmedQuery,
       status: 'found',
