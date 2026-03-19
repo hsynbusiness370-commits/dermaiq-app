@@ -9,6 +9,7 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { parseIngredientList, sampleIngredientInput } from '@/lib/ingredient-parser';
+import { usePlan } from '@/lib/plan-context';
 import { buildCatalogProduct, buildManualProduct } from '@/lib/product-builder';
 import { searchProducts } from '@/lib/product-search';
 import { analyzeProduct } from '@/lib/scoring';
@@ -32,6 +33,7 @@ export default function ScanScreen() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const { userProfile } = usePreferences();
+  const { consumeAnalysis, isHydrated: isPlanHydrated, isPremium, remainingAnalyses } = usePlan();
 
   const trimmedInput = ingredientInput.trim();
   const trimmedSearchQuery = searchQuery.trim();
@@ -53,16 +55,25 @@ export default function ScanScreen() {
       return;
     }
 
-    const parsed = parseIngredientList(ingredientInput);
-    const product = buildManualProduct(parsed.matchedIngredients);
-    const analysis = analyzeProduct(product, userProfile);
+    void (async () => {
+      const access = await consumeAnalysis();
 
-    navigateToAnalysis({
-      analysis,
-      matchedIngredients: parsed.matchedIngredients,
-      unknownIngredients: parsed.unknownIngredients,
-      rawInput: trimmedInput,
-    });
+      if (!access.allowed) {
+        router.push('/premium');
+        return;
+      }
+
+      const parsed = parseIngredientList(ingredientInput);
+      const product = buildManualProduct(parsed.matchedIngredients);
+      const analysis = analyzeProduct(product, userProfile);
+
+      navigateToAnalysis({
+        analysis,
+        matchedIngredients: parsed.matchedIngredients,
+        unknownIngredients: parsed.unknownIngredients,
+        rawInput: trimmedInput,
+      });
+    })();
   };
 
   const handleSearchProducts = async () => {
@@ -75,16 +86,25 @@ export default function ScanScreen() {
   };
 
   const handleSelectProduct = (product: ProductCatalogEntry) => {
-    const parsed = parseIngredientList(product.ingredientList);
-    const builtProduct = buildCatalogProduct(product, parsed.matchedIngredients);
-    const analysis = analyzeProduct(builtProduct, userProfile);
+    void (async () => {
+      const access = await consumeAnalysis();
 
-    navigateToAnalysis({
-      analysis,
-      matchedIngredients: parsed.matchedIngredients,
-      unknownIngredients: parsed.unknownIngredients,
-      rawInput: product.ingredientList,
-    });
+      if (!access.allowed) {
+        router.push('/premium');
+        return;
+      }
+
+      const parsed = parseIngredientList(product.ingredientList);
+      const builtProduct = buildCatalogProduct(product, parsed.matchedIngredients);
+      const analysis = analyzeProduct(builtProduct, userProfile);
+
+      navigateToAnalysis({
+        analysis,
+        matchedIngredients: parsed.matchedIngredients,
+        unknownIngredients: parsed.unknownIngredients,
+        rawInput: product.ingredientList,
+      });
+    })();
   };
 
   return (
@@ -340,6 +360,13 @@ export default function ScanScreen() {
       </PremiumCard>
 
       <View style={styles.footer}>
+        {!isPremium ? (
+          <Text style={styles.planText}>
+            {isPlanHydrated
+              ? `${remainingAnalyses} of 3 free analyses remaining today`
+              : 'Syncing your free plan access...'}
+          </Text>
+        ) : null}
         {entryMode === 'manual' && !trimmedInput && mode === 'Ingredients' ? (
           <Text style={styles.validationText}>Paste an ingredient list to unlock your analysis.</Text>
         ) : null}
@@ -367,7 +394,7 @@ export default function ScanScreen() {
               leftIcon={<Ionicons name="sparkles" size={18} color={colors.surfaceElevated} />}
               rightIcon={<Ionicons name="arrow-forward" size={18} color={colors.surfaceElevated} />}
               onPress={handleAnalyzeIngredients}
-              disabled={!canAnalyzeManual}
+              disabled={!canAnalyzeManual || !isPlanHydrated}
             />
           )}
         </View>
@@ -764,6 +791,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     gap: spacing.sm,
+  },
+  planText: {
+    ...typography.bodySmall,
+    color: colors.primaryDeep,
+    fontWeight: '700',
   },
   validationText: {
     ...typography.bodySmall,

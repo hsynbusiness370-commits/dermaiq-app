@@ -116,3 +116,11 @@ export type ProductSearchResponse = {
   results: ProductCatalogEntry[];
   message?: string;
 };
+
+export type UserPlan = 'free' | 'premium';
+
+export type PlanState = {
+  plan: UserPlan;
+  analysesUsed: number;
+  usageDate: string;
+};

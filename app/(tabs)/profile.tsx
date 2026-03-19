@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { Alert } from 'react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +10,7 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
+import { usePlan } from '@/lib/plan-context';
 import { usePreferences } from '@/lib/preferences-context';
 import { useSavedAnalyses } from '@/lib/saved-analyses-context';
 import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
@@ -60,8 +62,9 @@ function getOverallScore(score: SavedAnalysis) {
 }
 
 export default function ProfileScreen() {
-  const { name, skinGoal, skinType, subscriptionStatus } = usePreferences();
+  const { name, skinGoal, skinType } = usePreferences();
   const { clearSavedAnalyses, savedAnalyses } = useSavedAnalyses();
+  const { currentPlan, isPremium } = usePlan();
   const usageStats = useMemo(() => {
     const totalAnalyses = savedAnalyses.length;
     const greatMatches = savedAnalyses.filter((scan) => scan.verdict === 'Great Match').length;
@@ -83,6 +86,11 @@ export default function ProfileScreen() {
       : 'Confidence: Building as you scan more products';
 
   const handleActionPress = async (actionId: (typeof actionItems)[number]['id']) => {
+    if (actionId === 'manage-subscription') {
+      router.push('/premium');
+      return;
+    }
+
     if (actionId !== 'clear-history') {
       return;
     }
@@ -116,7 +124,7 @@ export default function ProfileScreen() {
               </View>
             </LinearGradient>
           </Pressable>
-          <Badge label="Skin profile" tone="premium" />
+          <Badge label={isPremium ? 'Premium' : 'Free'} tone="premium" />
         </View>
 
         <View style={styles.identityCopy}>
@@ -190,7 +198,7 @@ export default function ProfileScreen() {
           <View style={styles.subscriptionIcon}>
             <Ionicons name="sparkles-outline" size={18} color={colors.gold} />
           </View>
-          <Badge label={`${subscriptionStatus} plan`} tone="premium" />
+          <Badge label={`${currentPlan === 'premium' ? 'Premium' : 'Free'} plan`} tone="premium" />
         </View>
         <Text style={styles.subscriptionTitle}>Upgrade your skincare intelligence.</Text>
         <Text style={styles.subscriptionBody}>Unlock premium guidance designed to make DermaIQ more useful over time.</Text>
@@ -210,10 +218,10 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.subscriptionButtonWrap}>
           <PrimaryButton
-            label="Explore premium"
+            label={isPremium ? 'Premium active' : 'Upgrade'}
             size="md"
             leftIcon={<Ionicons name="sparkles" size={16} color={colors.surfaceElevated} />}
-            onPress={noop}
+            onPress={() => router.push('/premium')}
           />
         </View>
       </LinearGradient>
@@ -238,7 +246,7 @@ export default function ProfileScreen() {
           <View style={styles.rowDivider} />
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Subscription</Text>
-            <Text style={styles.rowValue}>{subscriptionStatus}</Text>
+            <Text style={styles.rowValue}>{currentPlan === 'premium' ? 'Premium' : 'Free'}</Text>
           </View>
         </View>
       </PremiumCard>
