@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScoreCard } from '@/components/ScoreCard';
 import { Screen } from '@/components/Screen';
 import { usePreferences } from '@/lib/preferences-context';
+import { useSavedAnalyses } from '@/lib/saved-analyses-context';
 import { analyzeProduct } from '@/lib/scoring';
 import { sampleAnalysisProduct } from '@/lib/sample-products';
 import { colors, radius, shadows, spacing, typography } from '@/lib/theme';
@@ -66,14 +67,22 @@ function toTitleCase(value: string) {
 
 export default function ResultScreen() {
   const { userProfile } = usePreferences();
+  const { isAnalysisSaved, saveAnalysis } = useSavedAnalyses();
   const params = useLocalSearchParams<{ payload?: string | string[] }>();
   const payload = useMemo(() => decodePayload(params.payload), [params.payload]);
   const fallbackAnalysis = useMemo(() => analyzeProduct(sampleAnalysisProduct, userProfile), [userProfile]);
 
-  const analysis = payload?.analysis ?? fallbackAnalysis;
-  const matchedIngredients = payload?.matchedIngredients ?? fallbackAnalysis.product.ingredients;
-  const unknownIngredients = payload?.unknownIngredients ?? [];
+  const currentPayload: ManualAnalysisPayload = payload ?? {
+    analysis: fallbackAnalysis,
+    matchedIngredients: fallbackAnalysis.product.ingredients,
+    unknownIngredients: [],
+    rawInput: fallbackAnalysis.product.ingredients.map((ingredient) => ingredient.name).join(', '),
+  };
+  const analysis = currentPayload.analysis;
+  const matchedIngredients = currentPayload.matchedIngredients;
+  const unknownIngredients = currentPayload.unknownIngredients;
   const hasMatchedIngredients = matchedIngredients.length > 0;
+  const alreadySaved = isAnalysisSaved(currentPayload);
   const verdictLabel = hasMatchedIngredients ? analysis.verdict : 'Limited match';
   const verdictColorTone = hasMatchedIngredients ? verdictTone[analysis.verdict] : 'warning';
   const heroColors =
@@ -264,10 +273,12 @@ export default function ResultScreen() {
           onPress={() => router.back()}
         />
         <PrimaryButton
-          label="Save to history"
+          label={alreadySaved ? 'Saved to history' : 'Save to history'}
           variant="secondary"
           size="md"
           leftIcon={<Ionicons name="bookmark-outline" size={16} color={colors.text} />}
+          onPress={() => saveAnalysis(currentPayload)}
+          disabled={!hasMatchedIngredients}
         />
       </View>
     </Screen>

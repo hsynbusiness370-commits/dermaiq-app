@@ -8,54 +8,23 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
-import { resolveIngredients } from '@/lib/ingredient-db';
-import { dailyTip, recentScans, ScanHistoryItem } from '@/lib/mock-data';
+import { dailyTip } from '@/lib/mock-data';
 import { usePreferences } from '@/lib/preferences-context';
+import { useSavedAnalyses } from '@/lib/saved-analyses-context';
+import { formatSavedAnalysisDate, savedAnalysisToPayload } from '@/lib/storage';
 import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
-import { ManualAnalysisPayload } from '@/lib/types';
 
-function getOverallScore(scan: ScanHistoryItem) {
-  return Math.round(scan.safetyScore * 0.4 + scan.skinMatchScore * 0.35 + scan.effectivenessScore * 0.25);
-}
-
-function encodePayload(payload: ManualAnalysisPayload) {
+function encodePayload(payload: ReturnType<typeof savedAnalysisToPayload>) {
   return encodeURIComponent(JSON.stringify(payload));
-}
-
-function buildHistoryPayload(scan: ScanHistoryItem): ManualAnalysisPayload {
-  const matchedIngredients = resolveIngredients(scan.ingredientNames);
-
-  return {
-    analysis: {
-      product: {
-        id: scan.id,
-        name: scan.productName,
-        brand: scan.brand,
-        category: scan.category,
-        ingredients: matchedIngredients,
-      },
-      safetyScore: scan.safetyScore,
-      skinMatchScore: scan.skinMatchScore,
-      effectivenessScore: scan.effectivenessScore,
-      verdict: scan.verdict,
-      verdictSummary: scan.verdictSummary,
-      explanation: scan.explanation,
-      whyItMatches: scan.whyItMatches,
-      possibleConcerns: scan.possibleConcerns,
-      recommendedFor: scan.recommendedFor,
-    },
-    matchedIngredients,
-    unknownIngredients: scan.unknownIngredients,
-    rawInput: [...scan.ingredientNames, ...scan.unknownIngredients].join(', '),
-  };
 }
 
 export default function HomeScreen() {
   const { name, skinGoal, skinType } = usePreferences();
-  const hasHistory = recentScans.length > 0;
-  const latestScan = recentScans[0];
-  const recentPreview = recentScans.slice(0, 3);
-  const greatMatchCount = recentScans.filter((scan) => scan.verdict === 'Great Match').length;
+  const { savedAnalyses } = useSavedAnalyses();
+  const hasHistory = savedAnalyses.length > 0;
+  const latestScan = savedAnalyses[0];
+  const recentPreview = savedAnalyses.slice(0, 3);
+  const greatMatchCount = savedAnalyses.filter((scan) => scan.verdict === 'Great Match').length;
   const insightText = hasHistory
     ? `You have ${greatMatchCount} strong matches saved. Your skin profile continues to lean toward hydration-led, glow-supporting formulas.`
     : `Your skin profile suggests a calmer response to hydration-first formulas tailored to ${skinType.toLowerCase()} skin.`;
@@ -166,7 +135,7 @@ export default function HomeScreen() {
               router.push({
                 pathname: '/result',
                 params: {
-                  payload: encodePayload(buildHistoryPayload(latestScan)),
+                  payload: encodePayload(savedAnalysisToPayload(latestScan)),
                 },
               })
             }
@@ -178,12 +147,12 @@ export default function HomeScreen() {
                   <Text style={styles.latestBrand}>{latestScan.brand}</Text>
                   <Text style={styles.latestName}>{latestScan.productName}</Text>
                   <Text style={styles.latestMeta}>
-                    {latestScan.category} · {latestScan.scannedAt}
+                    {latestScan.category} · {formatSavedAnalysisDate(latestScan.createdAt)}
                   </Text>
                 </View>
 
                 <View style={styles.latestScoreBubble}>
-                  <Text style={styles.latestScoreValue}>{getOverallScore(latestScan)}</Text>
+                  <Text style={styles.latestScoreValue}>{latestScan.overallScore}</Text>
                   <Text style={styles.latestScoreLabel}>Overall</Text>
                 </View>
               </View>
@@ -213,7 +182,7 @@ export default function HomeScreen() {
                   router.push({
                     pathname: '/result',
                     params: {
-                      payload: encodePayload(buildHistoryPayload(scan)),
+                      payload: encodePayload(savedAnalysisToPayload(scan)),
                     },
                   })
                 }
@@ -224,11 +193,11 @@ export default function HomeScreen() {
                     <View style={styles.recentCopy}>
                       <Text style={styles.recentName}>{scan.productName}</Text>
                       <Text style={styles.recentMeta}>
-                        {scan.verdict} · {scan.scannedAt}
+                        {scan.verdict} · {formatSavedAnalysisDate(scan.createdAt)}
                       </Text>
                     </View>
                     <View style={styles.recentScorePill}>
-                      <Text style={styles.recentScoreValue}>{getOverallScore(scan)}</Text>
+                      <Text style={styles.recentScoreValue}>{scan.overallScore}</Text>
                     </View>
                   </View>
                 </PremiumCard>

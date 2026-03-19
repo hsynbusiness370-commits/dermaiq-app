@@ -7,10 +7,10 @@ import { Badge } from '@/components/Badge';
 import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
-import { resolveIngredients } from '@/lib/ingredient-db';
-import { recentScans, ScanHistoryItem } from '@/lib/mock-data';
+import { useSavedAnalyses } from '@/lib/saved-analyses-context';
+import { formatSavedAnalysisDate, savedAnalysisToPayload } from '@/lib/storage';
 import { colors, radius, spacing, typography } from '@/lib/theme';
-import { ManualAnalysisPayload } from '@/lib/types';
+import { SavedAnalysis } from '@/lib/types';
 
 const verdictIcon = {
   'Great Match': 'checkmark-circle',
@@ -21,63 +21,32 @@ const verdictIcon = {
 const filterOptions = ['All', 'Great Match', 'Caution', 'Review'] as const;
 type FilterOption = (typeof filterOptions)[number];
 
-function getOverallScore(scan: ScanHistoryItem) {
-  return Math.round(scan.safetyScore * 0.4 + scan.skinMatchScore * 0.35 + scan.effectivenessScore * 0.25);
-}
-
-function encodePayload(payload: ManualAnalysisPayload) {
+function encodePayload(payload: ReturnType<typeof savedAnalysisToPayload>) {
   return encodeURIComponent(JSON.stringify(payload));
 }
 
-function buildHistoryPayload(scan: ScanHistoryItem): ManualAnalysisPayload {
-  const matchedIngredients = resolveIngredients(scan.ingredientNames);
-
-  return {
-    analysis: {
-      product: {
-        id: scan.id,
-        name: scan.productName,
-        brand: scan.brand,
-        category: scan.category,
-        ingredients: matchedIngredients,
-      },
-      safetyScore: scan.safetyScore,
-      skinMatchScore: scan.skinMatchScore,
-      effectivenessScore: scan.effectivenessScore,
-      verdict: scan.verdict,
-      verdictSummary: scan.verdictSummary,
-      explanation: scan.explanation,
-      whyItMatches: scan.whyItMatches,
-      possibleConcerns: scan.possibleConcerns,
-      recommendedFor: scan.recommendedFor,
-    },
-    matchedIngredients,
-    unknownIngredients: scan.unknownIngredients,
-    rawInput: [...scan.ingredientNames, ...scan.unknownIngredients].join(', '),
-  };
-}
-
 export default function HistoryScreen() {
+  const { savedAnalyses } = useSavedAnalyses();
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
 
   const filteredScans = useMemo(() => {
     switch (activeFilter) {
       case 'Great Match':
-        return recentScans.filter((scan) => scan.verdict === 'Great Match');
+        return savedAnalyses.filter((scan) => scan.verdict === 'Great Match');
       case 'Caution':
-        return recentScans.filter((scan) => scan.verdict === 'Use with Caution');
+        return savedAnalyses.filter((scan) => scan.verdict === 'Use with Caution');
       case 'Review':
-        return recentScans.filter((scan) => scan.status === 'Needs review' || scan.verdict === 'Not Ideal');
+        return savedAnalyses.filter((scan) => scan.status === 'Needs review' || scan.verdict === 'Not Ideal');
       default:
-        return recentScans;
+        return savedAnalyses;
     }
-  }, [activeFilter]);
+  }, [activeFilter, savedAnalyses]);
 
   const averageScore =
-    recentScans.length > 0
-      ? Math.round(recentScans.reduce((total, scan) => total + getOverallScore(scan), 0) / recentScans.length)
+    savedAnalyses.length > 0
+      ? Math.round(savedAnalyses.reduce((total, scan) => total + scan.overallScore, 0) / savedAnalyses.length)
       : 0;
-  const greatMatchCount = recentScans.filter((scan) => scan.verdict === 'Great Match').length;
+  const greatMatchCount = savedAnalyses.filter((scan) => scan.verdict === 'Great Match').length;
 
   return (
     <Screen contentContainerStyle={styles.content}>
@@ -86,7 +55,7 @@ export default function HistoryScreen() {
         <Text style={styles.subtitle}>Saved reads live here and become more useful over time.</Text>
       </View>
 
-      {recentScans.length === 0 ? (
+      {savedAnalyses.length === 0 ? (
         <PremiumCard variant="elevated" style={styles.emptyState}>
           <View style={styles.emptyIcon}>
             <Ionicons name="sparkles-outline" size={22} color={colors.primaryDeep} />
@@ -106,7 +75,7 @@ export default function HistoryScreen() {
         <>
           <PremiumCard variant="tinted" style={styles.summaryCard}>
             <View style={styles.summaryMetric}>
-              <Text style={styles.summaryValue}>{recentScans.length}</Text>
+              <Text style={styles.summaryValue}>{savedAnalyses.length}</Text>
               <Text style={styles.summaryLabel}>Saved analyses</Text>
             </View>
             <View style={styles.summaryMetric}>
@@ -145,8 +114,6 @@ export default function HistoryScreen() {
           ) : (
             <View style={styles.list}>
               {filteredScans.map((scan) => {
-                const overallScore = getOverallScore(scan);
-
                 return (
                   <Pressable
                     key={scan.id}
@@ -154,7 +121,7 @@ export default function HistoryScreen() {
                       router.push({
                         pathname: '/result',
                         params: {
-                          payload: encodePayload(buildHistoryPayload(scan)),
+                          payload: encodePayload(savedAnalysisToPayload(scan)),
                         },
                       })
                     }
@@ -166,12 +133,12 @@ export default function HistoryScreen() {
                           <Text style={styles.brand}>{scan.brand}</Text>
                           <Text style={styles.productName}>{scan.productName}</Text>
                           <Text style={styles.secondaryLine}>
-                            {scan.category} · {scan.scannedAt}
+                            {scan.category} · {formatSavedAnalysisDate(scan.createdAt)}
                           </Text>
                         </View>
 
                         <View style={styles.scoreBubble}>
-                          <Text style={styles.scoreBubbleValue}>{overallScore}</Text>
+                          <Text style={styles.scoreBubbleValue}>{scan.overallScore}</Text>
                           <Text style={styles.scoreBubbleLabel}>Overall</Text>
                         </View>
                       </View>

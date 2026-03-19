@@ -73,3 +73,28 @@ export type ManualAnalysisPayload = {
   unknownIngredients: string[];
   rawInput: string;
 };
+
+export type SavedAnalysisStatus = 'Saved' | 'Needs review';
+
+export type SavedAnalysis = {
+  id: string;
+  fingerprint: string;
+  createdAt: string;
+  productName: string;
+  brand: string;
+  category: string;
+  verdict: ProductVerdict;
+  status: SavedAnalysisStatus;
+  overallScore: number;
+  safetyScore: number;
+  skinMatchScore: number;
+  effectivenessScore: number;
+  summary: string;
+  explanation: string;
+  whyItMatches: string[];
+  possibleConcerns: string[];
+  recommendedFor: string[];
+  matchedIngredients: Ingredient[];
+  unknownIngredients: string[];
+  rawInput: string;
+};

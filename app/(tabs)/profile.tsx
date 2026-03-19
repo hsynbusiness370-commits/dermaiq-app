@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Alert } from 'react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -8,9 +9,10 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
-import { recentScans } from '@/lib/mock-data';
 import { usePreferences } from '@/lib/preferences-context';
+import { useSavedAnalyses } from '@/lib/saved-analyses-context';
 import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
+import { SavedAnalysis } from '@/lib/types';
 
 const actionItems = [
   {
@@ -53,28 +55,52 @@ const actionItems = [
 
 const noop = () => undefined;
 
-function getOverallScore(score: (typeof recentScans)[number]) {
+function getOverallScore(score: SavedAnalysis) {
   return Math.round(score.safetyScore * 0.4 + score.skinMatchScore * 0.35 + score.effectivenessScore * 0.25);
 }
 
 export default function ProfileScreen() {
   const { name, skinGoal, skinType, subscriptionStatus } = usePreferences();
+  const { clearSavedAnalyses, savedAnalyses } = useSavedAnalyses();
   const usageStats = useMemo(() => {
-    const totalAnalyses = recentScans.length;
-    const greatMatches = recentScans.filter((scan) => scan.verdict === 'Great Match').length;
+    const totalAnalyses = savedAnalyses.length;
+    const greatMatches = savedAnalyses.filter((scan) => scan.verdict === 'Great Match').length;
     const averageScore =
       totalAnalyses > 0
-        ? Math.round(recentScans.reduce((total, scan) => total + getOverallScore(scan), 0) / totalAnalyses)
+        ? Math.round(savedAnalyses.reduce((total, scan) => total + getOverallScore(scan), 0) / totalAnalyses)
         : 0;
 
     return { totalAnalyses, greatMatches, averageScore };
-  }, []);
+  }, [savedAnalyses]);
 
   const intelligenceText =
-    recentScans.length > 0
+    savedAnalyses.length > 0
       ? 'Your skin is trending toward hydration-focused routines with calmer, lower-friction formulas.'
       : 'Your profile suggests a calmer response to hydration-led formulas and low-irritation routines.';
-  const confidenceText = recentScans.length > 1 ? 'Confidence: High (based on recent analyses)' : 'Confidence: Building as you scan more products';
+  const confidenceText =
+    savedAnalyses.length > 1
+      ? 'Confidence: High (based on recent analyses)'
+      : 'Confidence: Building as you scan more products';
+
+  const handleActionPress = async (actionId: (typeof actionItems)[number]['id']) => {
+    if (actionId !== 'clear-history') {
+      return;
+    }
+
+    Alert.alert('Clear history', 'Remove all saved analyses from this device?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          void clearSavedAnalyses();
+        },
+      },
+    ]);
+  };
 
   return (
     <Screen contentContainerStyle={styles.content}>
@@ -221,7 +247,13 @@ export default function ProfileScreen() {
         <SectionHeader title="Actions" subtitle="Quick profile-level actions and account controls." />
         <View style={styles.actionList}>
           {actionItems.map((item, index) => (
-            <Pressable key={item.id} onPress={noop} style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}>
+            <Pressable
+              key={item.id}
+              onPress={() => {
+                void handleActionPress(item.id);
+              }}
+              style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+            >
               <View style={styles.actionRowLeft}>
                 <View style={styles.actionIcon}>
                   <Ionicons name={item.icon} size={18} color={colors.primaryDeep} />
