@@ -9,6 +9,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ProductArtwork } from '@/components/ProductArtwork';
 import { Screen } from '@/components/Screen';
 import { parseIngredientList, sampleIngredientInput } from '@/lib/ingredient-parser';
 import { usePlan } from '@/lib/plan-context';
@@ -38,6 +39,28 @@ type BarcodeUiState =
 
 function encodePayload(payload: ManualAnalysisPayload) {
   return encodeURIComponent(JSON.stringify(payload));
+}
+
+function getSearchSourceLabel(source: ProductSearchResponse['source']) {
+  switch (source) {
+    case 'external':
+      return 'Recognized product';
+    case 'stored':
+      return 'Matched from device cache';
+    default:
+      return 'Matched from database';
+  }
+}
+
+function getBarcodeSourceLabel(source: BarcodeLookupResponse['source']) {
+  switch (source) {
+    case 'external':
+      return 'Matched from barcode';
+    case 'stored':
+      return 'Matched from saved product';
+    default:
+      return 'Matched from barcode';
+  }
 }
 
 export default function ScanScreen() {
@@ -122,7 +145,7 @@ export default function ScanScreen() {
     setSearchResponse(result);
   };
 
-  const handleSelectProduct = (product: ProductCatalogEntry) => {
+  const handleSelectProduct = (product: ProductCatalogEntry, source: ProductSearchResponse['source']) => {
     void (async () => {
       const access = await consumeAnalysis();
 
@@ -142,6 +165,7 @@ export default function ScanScreen() {
         matchedIngredients: parsed.matchedIngredients,
         unknownIngredients: parsed.unknownIngredients,
         rawInput: product.ingredientList,
+        sourceLabel: getSearchSourceLabel(source),
       });
     })();
   };
@@ -170,6 +194,7 @@ export default function ScanScreen() {
         matchedIngredients: parsed.matchedIngredients,
         unknownIngredients: parsed.unknownIngredients,
         rawInput: product.ingredientList,
+        sourceLabel: getBarcodeSourceLabel(lookupResult.source),
       });
       return;
     }
@@ -330,11 +355,18 @@ export default function ScanScreen() {
                       {searchResponse.results.map((product) => (
                         <Pressable
                           key={product.id}
-                          onPress={() => handleSelectProduct(product)}
+                          onPress={() => handleSelectProduct(product, searchResponse.source)}
                           style={({ pressed }) => [styles.resultPressable, pressed && styles.resultPressed]}
                         >
                           <PremiumCard style={styles.resultCard}>
                             <View style={styles.resultTopRow}>
+                              <ProductArtwork
+                                imageUrl={product.imageUrl}
+                                imagePlaceholder={product.imagePlaceholder}
+                                category={product.category}
+                                productName={product.name}
+                                size="compact"
+                              />
                               <View style={styles.resultCopy}>
                                 <Text style={styles.resultBrand}>{product.brand}</Text>
                                 <Text style={styles.resultName}>{product.name}</Text>

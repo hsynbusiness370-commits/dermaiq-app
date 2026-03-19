@@ -53,6 +53,9 @@ export function createSavedAnalysis(payload: ManualAnalysisPayload, createdAt = 
     productName: payload.analysis.product.name,
     brand: payload.analysis.product.brand,
     category: payload.analysis.product.category,
+    imageUrl: payload.analysis.product.imageUrl,
+    imagePlaceholder: payload.analysis.product.imagePlaceholder,
+    sourceLabel: payload.sourceLabel,
     verdict: payload.analysis.verdict,
     status: deriveStatus(payload.analysis.verdict),
     overallScore: computeOverallScore(payload),
@@ -82,6 +85,8 @@ export function savedAnalysisToPayload(savedAnalysis: SavedAnalysis): ManualAnal
         brand: savedAnalysis.brand,
         category: savedAnalysis.category,
         ingredients: savedAnalysis.matchedIngredients,
+        imageUrl: savedAnalysis.imageUrl,
+        imagePlaceholder: savedAnalysis.imagePlaceholder,
       },
       safetyScore: savedAnalysis.safetyScore,
       skinMatchScore: savedAnalysis.skinMatchScore,
@@ -99,6 +104,7 @@ export function savedAnalysisToPayload(savedAnalysis: SavedAnalysis): ManualAnal
     matchedIngredients: savedAnalysis.matchedIngredients,
     unknownIngredients: savedAnalysis.unknownIngredients,
     rawInput: savedAnalysis.rawInput,
+    sourceLabel: savedAnalysis.sourceLabel,
   };
 }
 

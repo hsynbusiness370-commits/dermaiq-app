@@ -186,7 +186,7 @@ export function normalizeExternalProduct(rawData: ExternalRawProduct): ProductCa
     category: category || 'Unknown',
     ingredientList,
     barcode: rawData.code,
-    imagePlaceholder: rawData.image_url,
+    imageUrl: rawData.image_url,
   };
 }
 

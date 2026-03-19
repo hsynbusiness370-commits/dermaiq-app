@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ProductArtwork } from '@/components/ProductArtwork';
 import { Screen } from '@/components/Screen';
 import { useSavedAnalyses } from '@/lib/saved-analyses-context';
 import { formatSavedAnalysisDate, savedAnalysisToPayload } from '@/lib/storage';
@@ -136,6 +137,13 @@ export default function HistoryScreen() {
                   >
                     <PremiumCard variant="elevated" style={styles.card}>
                       <View style={styles.topRow}>
+                        <ProductArtwork
+                          imageUrl={scan.imageUrl}
+                          imagePlaceholder={scan.imagePlaceholder}
+                          category={scan.category}
+                          productName={scan.productName}
+                          size="card"
+                        />
                         <View style={styles.productMeta}>
                           <Text style={styles.brand}>{scan.brand}</Text>
                           <Text style={styles.productName}>{scan.productName}</Text>

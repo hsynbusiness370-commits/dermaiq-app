@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ProductArtwork } from '@/components/ProductArtwork';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { dailyTip } from '@/lib/mock-data';
@@ -173,6 +174,13 @@ export default function HomeScreen() {
           >
             <PremiumCard variant="elevated" style={styles.latestCard}>
               <View style={styles.latestTopRow}>
+                <ProductArtwork
+                  imageUrl={latestScan.imageUrl}
+                  imagePlaceholder={latestScan.imagePlaceholder}
+                  category={latestScan.category}
+                  productName={latestScan.productName}
+                  size="card"
+                />
                 <View style={styles.latestCopy}>
                   <Text style={styles.latestBrand}>{latestScan.brand}</Text>
                   <Text style={styles.latestName}>{latestScan.productName}</Text>
@@ -232,6 +240,13 @@ export default function HomeScreen() {
               >
                 <PremiumCard style={styles.recentItem}>
                   <View style={styles.recentRow}>
+                    <ProductArtwork
+                      imageUrl={scan.imageUrl}
+                      imagePlaceholder={scan.imagePlaceholder}
+                      category={scan.category}
+                      productName={scan.productName}
+                      size="compact"
+                    />
                     <View style={styles.recentCopy}>
                       <Text style={styles.recentName}>{scan.productName}</Text>
                       <Text style={styles.recentMeta}>

@@ -24,5 +24,7 @@ export function buildCatalogProduct(
     brand: catalogProduct.brand,
     category: catalogProduct.category,
     ingredients,
+    imageUrl: catalogProduct.imageUrl,
+    imagePlaceholder: catalogProduct.imagePlaceholder,
   };
 }

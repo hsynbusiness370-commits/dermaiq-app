@@ -39,6 +39,8 @@ export type Product = {
   brand: string;
   ingredients: Ingredient[];
   category: string;
+  imageUrl?: string;
+  imagePlaceholder?: string;
 };
 
 export type UserProfile = {
@@ -76,6 +78,7 @@ export type ManualAnalysisPayload = {
   matchedIngredients: Ingredient[];
   unknownIngredients: string[];
   rawInput: string;
+  sourceLabel?: string;
 };
 
 export type SavedAnalysisStatus = 'Saved' | 'Needs review';
@@ -87,6 +90,9 @@ export type SavedAnalysis = {
   productName: string;
   brand: string;
   category: string;
+  imageUrl?: string;
+  imagePlaceholder?: string;
+  sourceLabel?: string;
   verdict: ProductVerdict;
   status: SavedAnalysisStatus;
   overallScore: number;
@@ -113,6 +119,7 @@ export type ProductCatalogEntry = {
   category: string;
   ingredientList: string;
   barcode?: string;
+  imageUrl?: string;
   imagePlaceholder?: string;
 };
 

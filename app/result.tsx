@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ProductArtwork } from '@/components/ProductArtwork';
 import { ScoreCard } from '@/components/ScoreCard';
 import { Screen } from '@/components/Screen';
 import { usePreferences } from '@/lib/preferences-context';
@@ -116,10 +117,25 @@ export default function ResultScreen() {
         </View>
 
         <View style={styles.heroContent}>
-          <View style={styles.productHeader}>
-            <Text style={styles.heroEyebrow}>{analysis.product.brand}</Text>
-            <Text style={styles.productName}>{analysis.product.name}</Text>
-            <Text style={styles.productCategory}>{toTitleCase(analysis.product.category)}</Text>
+          <View style={styles.productRow}>
+            <ProductArtwork
+              imageUrl={analysis.product.imageUrl}
+              imagePlaceholder={analysis.product.imagePlaceholder}
+              category={analysis.product.category}
+              productName={analysis.product.name}
+              size="hero"
+            />
+            <View style={styles.productHeader}>
+              <Text style={styles.heroEyebrow}>{analysis.product.brand}</Text>
+              <Text style={styles.productName}>{analysis.product.name}</Text>
+              <Text style={styles.productCategory}>{toTitleCase(analysis.product.category)}</Text>
+              {currentPayload.sourceLabel ? (
+                <View style={styles.sourcePill}>
+                  <Ionicons name="checkmark-circle-outline" size={14} color={colors.primaryDeep} />
+                  <Text style={styles.sourcePillText}>{currentPayload.sourceLabel}</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.heroHeaderBlock}>
@@ -353,7 +369,13 @@ const styles = StyleSheet.create({
   heroContent: {
     gap: spacing.lg,
   },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   productHeader: {
+    flex: 1,
     gap: spacing.xxs,
   },
   heroHeaderBlock: {
@@ -420,6 +442,24 @@ const styles = StyleSheet.create({
   productCategory: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+  },
+  sourcePill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.68)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.72)',
+  },
+  sourcePillText: {
+    ...typography.caption,
+    color: colors.primaryDeep,
+    fontWeight: '700',
   },
   scoreReportCard: {
     gap: spacing.lg,
