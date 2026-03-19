@@ -61,3 +61,15 @@ export type ProductAnalysis = {
   possibleConcerns: string[];
   recommendedFor: string[];
 };
+
+export type ParsedIngredientResult = {
+  matchedIngredients: Ingredient[];
+  unknownIngredients: string[];
+};
+
+export type ManualAnalysisPayload = {
+  analysis: ProductAnalysis;
+  matchedIngredients: Ingredient[];
+  unknownIngredients: string[];
+  rawInput: string;
+};
