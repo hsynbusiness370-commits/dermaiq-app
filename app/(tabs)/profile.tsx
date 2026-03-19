@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
@@ -7,6 +8,7 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
+import { recentScans } from '@/lib/mock-data';
 import { usePreferences } from '@/lib/preferences-context';
 import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
 
@@ -29,26 +31,64 @@ const actionItems = [
     subtitle: 'Leave this account and return later.',
     icon: 'log-out-outline',
   },
+  {
+    id: 'manage-subscription',
+    title: 'Manage subscription',
+    subtitle: 'Review plan options and future premium access.',
+    icon: 'card-outline',
+  },
+  {
+    id: 'data-privacy',
+    title: 'Data & privacy',
+    subtitle: 'Review how your analysis history supports personalization.',
+    icon: 'shield-checkmark-outline',
+  },
+  {
+    id: 'clear-history',
+    title: 'Clear history',
+    subtitle: 'Remove saved analyses and reset your archive view.',
+    icon: 'trash-outline',
+  },
 ] as const;
 
 const noop = () => undefined;
 
+function getOverallScore(score: (typeof recentScans)[number]) {
+  return Math.round(score.safetyScore * 0.4 + score.skinMatchScore * 0.35 + score.effectivenessScore * 0.25);
+}
+
 export default function ProfileScreen() {
   const { name, skinGoal, skinType, subscriptionStatus } = usePreferences();
+  const usageStats = useMemo(() => {
+    const totalAnalyses = recentScans.length;
+    const greatMatches = recentScans.filter((scan) => scan.verdict === 'Great Match').length;
+    const averageScore =
+      totalAnalyses > 0
+        ? Math.round(recentScans.reduce((total, scan) => total + getOverallScore(scan), 0) / totalAnalyses)
+        : 0;
+
+    return { totalAnalyses, greatMatches, averageScore };
+  }, []);
+
+  const intelligenceText =
+    recentScans.length > 0
+      ? 'Your skin is trending toward hydration-focused routines with calmer, lower-friction formulas.'
+      : 'Your profile suggests a calmer response to hydration-led formulas and low-irritation routines.';
+  const confidenceText = recentScans.length > 1 ? 'Confidence: High (based on recent analyses)' : 'Confidence: Building as you scan more products';
 
   return (
     <Screen contentContainerStyle={styles.content}>
       <LinearGradient colors={gradients.hero} style={styles.headerCard}>
         <View style={styles.headerTopRow}>
           <Pressable onPress={noop} style={({ pressed }) => [styles.avatarPressable, pressed && styles.avatarPressed]}>
-            <View style={styles.avatarOuter}>
+            <LinearGradient colors={['#F8FBF8', '#DDE9DE']} style={styles.avatarOuter}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{name.charAt(0)}</Text>
               </View>
               <View style={styles.avatarEditPill}>
                 <Ionicons name="create-outline" size={12} color={colors.primaryDeep} />
               </View>
-            </View>
+            </LinearGradient>
           </Pressable>
           <Badge label="Skin profile" tone="premium" />
         </View>
@@ -58,6 +98,39 @@ export default function ProfileScreen() {
           <Text style={styles.handle}>Your profile shapes every DermaIQ analysis and keeps recommendations personal.</Text>
         </View>
       </LinearGradient>
+
+      <PremiumCard variant="tinted" style={styles.intelligenceCard}>
+        <View style={styles.intelligenceHeader}>
+          <View style={styles.intelligenceIcon}>
+            <Ionicons name="sparkles-outline" size={18} color={colors.primaryDeep} />
+          </View>
+          <View style={styles.intelligenceCopy}>
+            <Text style={styles.intelligenceEyebrow}>AI Skin Intelligence</Text>
+            <Text style={styles.intelligenceTitle}>{intelligenceText}</Text>
+          </View>
+        </View>
+        <View style={styles.confidencePill}>
+          <Text style={styles.confidenceText}>{confidenceText}</Text>
+        </View>
+      </PremiumCard>
+
+      <PremiumCard variant="elevated" style={styles.usageCard}>
+        <SectionHeader title="Usage & Activity" subtitle="A compact look at how your archive is taking shape." />
+        <View style={styles.usageGrid}>
+          <View style={styles.usageItem}>
+            <Text style={styles.usageValue}>{usageStats.totalAnalyses}</Text>
+            <Text style={styles.usageLabel}>Total analyses</Text>
+          </View>
+          <View style={styles.usageItem}>
+            <Text style={styles.usageValue}>{usageStats.greatMatches}</Text>
+            <Text style={styles.usageLabel}>Great matches</Text>
+          </View>
+          <View style={styles.usageItem}>
+            <Text style={styles.usageValue}>{usageStats.averageScore}</Text>
+            <Text style={styles.usageLabel}>Average score</Text>
+          </View>
+        </View>
+      </PremiumCard>
 
       <PremiumCard variant="tinted" style={styles.summaryCard}>
         <SectionHeader title="Skin profile summary" subtitle="A clear view of what DermaIQ is optimizing for right now." />
@@ -93,10 +166,22 @@ export default function ProfileScreen() {
           </View>
           <Badge label={`${subscriptionStatus} plan`} tone="premium" />
         </View>
-        <Text style={styles.subscriptionTitle}>Unlock deeper ingredient intelligence and richer skincare guidance.</Text>
-        <Text style={styles.subscriptionBody}>
-          Stay on the free plan for now, or evolve this area into a premium experience with more nuanced reporting.
-        </Text>
+        <Text style={styles.subscriptionTitle}>Upgrade your skincare intelligence.</Text>
+        <Text style={styles.subscriptionBody}>Unlock premium guidance designed to make DermaIQ more useful over time.</Text>
+        <View style={styles.benefitsList}>
+          <View style={styles.benefitRow}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.gold} />
+            <Text style={styles.benefitText}>Deeper ingredient breakdowns</Text>
+          </View>
+          <View style={styles.benefitRow}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.gold} />
+            <Text style={styles.benefitText}>Long-term skin tracking</Text>
+          </View>
+          <View style={styles.benefitRow}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.gold} />
+            <Text style={styles.benefitText}>Smarter AI recommendations</Text>
+          </View>
+        </View>
         <View style={styles.subscriptionButtonWrap}>
           <PrimaryButton
             label="Explore premium"
@@ -183,6 +268,8 @@ const styles = StyleSheet.create({
   },
   avatarOuter: {
     position: 'relative',
+    padding: 4,
+    borderRadius: radius.pill,
   },
   avatar: {
     width: 96,
@@ -225,6 +312,77 @@ const styles = StyleSheet.create({
     ...typography.body,
     maxWidth: 330,
     color: colors.textSecondary,
+  },
+  intelligenceCard: {
+    gap: spacing.md,
+    backgroundColor: colors.surfaceTint,
+    borderColor: '#D8E4DA',
+  },
+  intelligenceHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  intelligenceIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  intelligenceCopy: {
+    flex: 1,
+  },
+  intelligenceEyebrow: {
+    ...typography.eyebrow,
+    color: colors.primaryDeep,
+    marginBottom: spacing.xxs,
+  },
+  intelligenceTitle: {
+    ...typography.sectionTitle,
+    fontSize: 21,
+    lineHeight: 27,
+  },
+  confidencePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  confidenceText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  usageCard: {
+    gap: spacing.lg,
+  },
+  usageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  usageItem: {
+    flex: 1,
+    minWidth: 96,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+  },
+  usageValue: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.3,
+  },
+  usageLabel: {
+    ...typography.caption,
+    marginTop: spacing.xxs,
   },
   summaryCard: {
     gap: spacing.lg,
@@ -290,6 +448,20 @@ const styles = StyleSheet.create({
   subscriptionBody: {
     ...typography.body,
     maxWidth: 340,
+  },
+  benefitsList: {
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  benefitText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
   },
   subscriptionButtonWrap: {
     paddingTop: spacing.xs,
