@@ -17,7 +17,7 @@ export function SectionHeader({ title, subtitle, actionLabel, onActionPress }: S
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
       {actionLabel ? (
-        <Pressable onPress={onActionPress}>
+        <Pressable onPress={onActionPress} style={({ pressed }) => [pressed && styles.actionPressed]}>
           <Text style={styles.action}>{actionLabel}</Text>
         </Pressable>
       ) : null}
@@ -46,5 +46,8 @@ const styles = StyleSheet.create({
     color: colors.primaryDeep,
     fontSize: 14,
     fontWeight: '700',
+  },
+  actionPressed: {
+    opacity: 0.8,
   },
 });

@@ -54,10 +54,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,
     borderWidth: 1,
+    maxWidth: '100%',
   },
   label: {
     ...typography.eyebrow,
     fontSize: 11,
     letterSpacing: 0.7,
+    flexShrink: 1,
   },
 });

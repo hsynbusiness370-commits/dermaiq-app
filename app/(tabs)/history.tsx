@@ -52,7 +52,7 @@ export default function HistoryScreen() {
     <Screen contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.title}>Your scan history</Text>
-        <Text style={styles.subtitle}>Saved reads live here and become more useful over time.</Text>
+        <Text style={styles.subtitle}>Saved reads live here and help DermaIQ understand your skin more clearly over time.</Text>
       </View>
 
       {savedAnalyses.length === 0 ? (
@@ -86,6 +86,13 @@ export default function HistoryScreen() {
               <Text style={styles.summaryValue}>{averageScore}</Text>
               <Text style={styles.summaryLabel}>Avg score</Text>
             </View>
+          </PremiumCard>
+
+          <PremiumCard variant="tinted" style={styles.archiveInsightCard}>
+            <Ionicons name="sparkles-outline" size={18} color={colors.primaryDeep} />
+            <Text style={styles.archiveInsightText}>
+              Confidence improves as DermaIQ compares more ingredient-level analyses across your saved archive.
+            </Text>
           </PremiumCard>
 
           <View style={styles.filterRow}>
@@ -144,35 +151,48 @@ export default function HistoryScreen() {
                       </View>
 
                       <View style={styles.middleRow}>
-                        <View
-                          style={[
-                            styles.verdictChip,
-                            scan.verdict === 'Great Match' && styles.verdictChipSuccess,
-                            scan.verdict === 'Use with Caution' && styles.verdictChipWarning,
-                            scan.verdict === 'Not Ideal' && styles.verdictChipDanger,
-                          ]}
-                        >
-                          <Ionicons
-                            name={verdictIcon[scan.verdict]}
-                            size={15}
-                            color={
-                              scan.verdict === 'Great Match'
-                                ? colors.success
-                                : scan.verdict === 'Use with Caution'
-                                  ? colors.warning
-                                  : colors.danger
-                            }
-                          />
-                          <Text
+                        <View style={styles.badgeGroup}>
+                          <View
                             style={[
-                              styles.verdictChipText,
-                              scan.verdict === 'Great Match' && styles.verdictChipTextSuccess,
-                              scan.verdict === 'Use with Caution' && styles.verdictChipTextWarning,
-                              scan.verdict === 'Not Ideal' && styles.verdictChipTextDanger,
+                              styles.verdictChip,
+                              scan.verdict === 'Great Match' && styles.verdictChipSuccess,
+                              scan.verdict === 'Use with Caution' && styles.verdictChipWarning,
+                              scan.verdict === 'Not Ideal' && styles.verdictChipDanger,
                             ]}
                           >
-                            {scan.verdict}
-                          </Text>
+                            <Ionicons
+                              name={verdictIcon[scan.verdict]}
+                              size={15}
+                              color={
+                                scan.verdict === 'Great Match'
+                                  ? colors.success
+                                  : scan.verdict === 'Use with Caution'
+                                    ? colors.warning
+                                    : colors.danger
+                              }
+                            />
+                            <Text
+                              style={[
+                                styles.verdictChipText,
+                                scan.verdict === 'Great Match' && styles.verdictChipTextSuccess,
+                                scan.verdict === 'Use with Caution' && styles.verdictChipTextWarning,
+                                scan.verdict === 'Not Ideal' && styles.verdictChipTextDanger,
+                              ]}
+                            >
+                              {scan.verdict}
+                            </Text>
+                          </View>
+
+                          <Badge
+                            label={`${scan.confidenceLevel ?? 'Moderate'} confidence`}
+                            tone={
+                              (scan.confidenceLevel ?? 'Moderate') === 'High'
+                                ? 'success'
+                                : (scan.confidenceLevel ?? 'Moderate') === 'Low'
+                                  ? 'warning'
+                                  : 'default'
+                            }
+                          />
                         </View>
 
                         <Badge label={scan.status} tone={scan.status === 'Needs review' ? 'warning' : 'default'} />
@@ -223,6 +243,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     justifyContent: 'space-between',
+  },
+  archiveInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  archiveInsightText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    flex: 1,
   },
   summaryMetric: {
     flex: 1,
@@ -324,6 +354,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  badgeGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    flex: 1,
   },
   verdictChip: {
     flexDirection: 'row',

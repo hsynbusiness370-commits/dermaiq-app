@@ -9,6 +9,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { dailyTip } from '@/lib/mock-data';
+import { usePlan } from '@/lib/plan-context';
 import { usePreferences } from '@/lib/preferences-context';
 import { useSavedAnalyses } from '@/lib/saved-analyses-context';
 import { formatSavedAnalysisDate, savedAnalysisToPayload } from '@/lib/storage';
@@ -21,13 +22,24 @@ function encodePayload(payload: ReturnType<typeof savedAnalysisToPayload>) {
 export default function HomeScreen() {
   const { name, skinGoal, skinType } = usePreferences();
   const { savedAnalyses } = useSavedAnalyses();
+  const { isPremium, remainingAnalyses, currentPlan } = usePlan();
   const hasHistory = savedAnalyses.length > 0;
   const latestScan = savedAnalyses[0];
   const recentPreview = savedAnalyses.slice(0, 3);
   const greatMatchCount = savedAnalyses.filter((scan) => scan.verdict === 'Great Match').length;
+  const averageConfidence =
+    savedAnalyses.length > 0
+      ? Math.round(
+          savedAnalyses.reduce((total, scan) => total + (scan.confidenceScore ?? 60), 0) / savedAnalyses.length
+        )
+      : 0;
+  const confidenceTone = averageConfidence >= 75 ? 'High' : averageConfidence >= 50 ? 'Moderate' : 'Low';
   const insightText = hasHistory
     ? `You have ${greatMatchCount} strong matches saved. Your skin profile continues to lean toward hydration-led, glow-supporting formulas.`
     : `Your skin profile suggests a calmer response to hydration-first formulas tailored to ${skinType.toLowerCase()} skin.`;
+  const intelligenceStatus = hasHistory
+    ? `Confidence ${confidenceTone.toLowerCase()} and improving with more ingredient-level analyses.`
+    : 'Confidence improves with every saved analysis.';
 
   return (
     <Screen contentContainerStyle={styles.content}>
@@ -123,6 +135,24 @@ export default function HomeScreen() {
           <Text style={styles.insightEyebrow}>Personal insight</Text>
           <Text style={styles.sectionEyebrow}>DermaIQ Insight</Text>
           <Text style={styles.insightText}>{insightText}</Text>
+          <View style={styles.intelligenceStrip}>
+            <View style={styles.intelligencePill}>
+              <Ionicons name="shield-checkmark-outline" size={14} color={colors.primaryDeep} />
+              <Text style={styles.intelligencePillText}>
+                {hasHistory ? `Avg confidence ${averageConfidence}/100` : intelligenceStatus}
+              </Text>
+            </View>
+            <View style={styles.intelligencePill}>
+              <Ionicons
+                name={currentPlan === 'premium' ? 'sparkles-outline' : 'time-outline'}
+                size={14}
+                color={colors.primaryDeep}
+              />
+              <Text style={styles.intelligencePillText}>
+                {isPremium ? 'Premium unlocked' : `${remainingAnalyses} analyses left today`}
+              </Text>
+            </View>
+          </View>
         </View>
       </PremiumCard>
 
@@ -158,7 +188,19 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.latestBottomRow}>
-                <Badge label={latestScan.verdict} tone={latestScan.verdict === 'Great Match' ? 'success' : 'warning'} />
+                <View style={styles.latestBadgeRow}>
+                  <Badge label={latestScan.verdict} tone={latestScan.verdict === 'Great Match' ? 'success' : 'warning'} />
+                  <Badge
+                    label={`${latestScan.confidenceLevel ?? 'Moderate'} confidence`}
+                    tone={
+                      (latestScan.confidenceLevel ?? 'Moderate') === 'High'
+                        ? 'success'
+                        : (latestScan.confidenceLevel ?? 'Moderate') === 'Low'
+                          ? 'warning'
+                          : 'default'
+                    }
+                  />
+                </View>
                 <View style={styles.viewHintPill}>
                   <Text style={styles.viewHintText}>View full analysis</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -237,6 +279,7 @@ export default function HomeScreen() {
         <View style={styles.tipCopy}>
           <Text style={styles.sectionEyebrow}>Daily tip</Text>
           <Text style={styles.tipText}>{dailyTip}</Text>
+          <Text style={styles.tipMeta}>Based on ingredient-level analysis patterns and your saved routine signals.</Text>
         </View>
       </PremiumCard>
     </Screen>
@@ -440,6 +483,29 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.text,
   },
+  intelligenceStrip: {
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  intelligencePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    maxWidth: '100%',
+  },
+  intelligencePillText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
   latestPressable: {
     borderRadius: radius.lg,
   },
@@ -498,6 +564,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: spacing.md,
+  },
+  latestBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    flex: 1,
   },
   viewHintPill: {
     flexDirection: 'row',
@@ -626,5 +698,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     marginTop: spacing.xs,
     color: colors.text,
+  },
+  tipMeta: {
+    ...typography.caption,
+    marginTop: spacing.sm,
+    color: colors.textSecondary,
   },
 });

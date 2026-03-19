@@ -18,9 +18,9 @@ export default function PremiumScreen() {
         <View style={styles.iconShell}>
           <Ionicons name="sparkles-outline" size={22} color={colors.gold} />
         </View>
-        <Text style={styles.title}>Upgrade your analysis power</Text>
+        <Text style={styles.title}>Unlock deeper skin intelligence</Text>
         <Text style={styles.subtitle}>
-          Unlock unlimited scans, deeper skincare guidance, and smarter recommendations designed to grow with your routine.
+          Get smarter insights tailored to your skin, plus unlimited analysis flow that keeps learning with every product you review.
         </Text>
       </LinearGradient>
 
@@ -37,6 +37,7 @@ export default function PremiumScreen() {
           <Ionicons name="checkmark-circle" size={18} color={colors.primaryDeep} />
           <Text style={styles.benefitText}>Smarter skincare recommendations</Text>
         </View>
+        <Text style={styles.benefitFooter}>Premium is about better intelligence, not just more access.</Text>
       </PremiumCard>
 
       <PremiumCard style={styles.statusCard}>
@@ -107,6 +108,11 @@ const styles = StyleSheet.create({
   },
   benefitText: {
     ...typography.bodyStrong,
+  },
+  benefitFooter: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   statusCard: {
     gap: spacing.sm,

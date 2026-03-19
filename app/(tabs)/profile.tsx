@@ -64,7 +64,7 @@ function getOverallScore(score: SavedAnalysis) {
 export default function ProfileScreen() {
   const { name, skinGoal, skinType } = usePreferences();
   const { clearSavedAnalyses, savedAnalyses } = useSavedAnalyses();
-  const { currentPlan, isPremium } = usePlan();
+  const { currentPlan, isPremium, remainingAnalyses } = usePlan();
   const usageStats = useMemo(() => {
     const totalAnalyses = savedAnalyses.length;
     const greatMatches = savedAnalyses.filter((scan) => scan.verdict === 'Great Match').length;
@@ -84,6 +84,10 @@ export default function ProfileScreen() {
     savedAnalyses.length > 1
       ? 'Confidence: High (based on recent analyses)'
       : 'Confidence: Building as you scan more products';
+  const profileTrustText =
+    savedAnalyses.length > 0
+      ? 'DermaIQ understands your skin better with every analysis.'
+      : 'Your profile becomes more trustworthy as you save more scans.';
 
   const handleActionPress = async (actionId: (typeof actionItems)[number]['id']) => {
     if (actionId === 'manage-subscription') {
@@ -146,6 +150,7 @@ export default function ProfileScreen() {
         <View style={styles.confidencePill}>
           <Text style={styles.confidenceText}>{confidenceText}</Text>
         </View>
+        <Text style={styles.trustText}>{profileTrustText}</Text>
       </PremiumCard>
 
       <PremiumCard variant="elevated" style={styles.usageCard}>
@@ -202,6 +207,7 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.subscriptionTitle}>Upgrade your skincare intelligence.</Text>
         <Text style={styles.subscriptionBody}>Unlock premium guidance designed to make DermaIQ more useful over time.</Text>
+        {!isPremium ? <Text style={styles.freeUsageText}>{remainingAnalyses} analyses left today on Free</Text> : null}
         <View style={styles.benefitsList}>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={16} color={colors.gold} />
@@ -398,6 +404,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '700',
   },
+  trustText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
   usageCard: {
     gap: spacing.lg,
   },
@@ -488,6 +498,11 @@ const styles = StyleSheet.create({
   subscriptionBody: {
     ...typography.body,
     maxWidth: 340,
+  },
+  freeUsageText: {
+    ...typography.caption,
+    color: colors.primaryDeep,
+    fontWeight: '700',
   },
   benefitsList: {
     gap: spacing.sm,
