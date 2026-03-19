@@ -19,7 +19,7 @@ export function PrimaryButton({
   variant = 'primary',
   disabled = false,
 }: PrimaryButtonProps) {
-  const gradientColors =
+  const gradientColors: [string, string] =
     variant === 'primary' ? [colors.primary, colors.primaryDeep] : [colors.surface, colors.surface];
 
   return (

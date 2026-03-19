@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { DimensionValue, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/lib/theme';
 
@@ -8,12 +8,14 @@ type ScoreCardProps = {
 };
 
 export function ScoreCard({ label, score }: ScoreCardProps) {
+  const fillWidth = `${score}%` as DimensionValue;
+
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.score}>{score}</Text>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${score}%` }]} />
+        <View style={[styles.fill, { width: fillWidth }]} />
       </View>
     </View>
   );

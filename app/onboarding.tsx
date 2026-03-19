@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { DimensionValue, StyleSheet, Text, View } from 'react-native';
 
 import { OptionChip } from '@/components/OptionChip';
 import { PremiumCard } from '@/components/PremiumCard';
@@ -29,7 +29,10 @@ export default function OnboardingScreen() {
   const { skinGoal, skinType, setSkinGoal, setSkinType } = usePreferences();
 
   const isLastStep = step === onboardingSteps.length - 1;
-  const progressWidth = useMemo(() => `${((step + 1) / onboardingSteps.length) * 100}%`, [step]);
+  const progressWidth = useMemo<DimensionValue>(
+    () => `${((step + 1) / onboardingSteps.length) * 100}%`,
+    [step]
+  );
 
   const handleContinue = () => {
     if (isLastStep) {
