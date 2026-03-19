@@ -100,21 +100,15 @@ export default function ResultScreen() {
         </View>
 
         <View style={styles.heroContent}>
-          <View style={styles.heroHeaderBlock}>
+          <View style={styles.productHeader}>
             <Text style={styles.heroEyebrow}>{analysis.product.brand}</Text>
-            <Text style={styles.heroTitle}>{verdictHeadline[verdictLabel]}</Text>
-            <Text style={styles.heroSummary}>{compactInsight}</Text>
+            <Text style={styles.productName}>{analysis.product.name}</Text>
+            <Text style={styles.productCategory}>{toTitleCase(analysis.product.category)}</Text>
           </View>
 
-          <View style={styles.heroProductRow}>
-            <View style={styles.imagePlaceholder}>
-              <Ionicons name="sparkles-outline" size={28} color={colors.primaryDeep} />
-            </View>
-
-            <View style={styles.productCopy}>
-              <Text style={styles.productName}>{analysis.product.name}</Text>
-              <Text style={styles.productCategory}>{toTitleCase(analysis.product.category)}</Text>
-            </View>
+          <View style={styles.heroHeaderBlock}>
+            <Text style={styles.heroTitle}>{verdictHeadline[verdictLabel]}</Text>
+            <Text style={styles.heroSummary}>{compactInsight}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -137,7 +131,7 @@ export default function ResultScreen() {
               </View>
             </View>
 
-            <View style={styles.detailScoreGrid}>
+            <View style={styles.detailScoreStack}>
               <ScoreCard label="Safety" score={analysis.safetyScore} style={styles.detailScoreCard} />
               <ScoreCard label="Skin Match" score={analysis.skinMatchScore} style={styles.detailScoreCard} />
               <ScoreCard label="Effectiveness" score={analysis.effectivenessScore} style={styles.detailScoreCard} />
@@ -236,7 +230,7 @@ export default function ResultScreen() {
             <Text style={styles.sectionEyebrow}>Review notes</Text>
             <Text style={styles.ingredientsTitle}>Unknown ingredients</Text>
           </View>
-          {unknownIngredients.length === 0 ? <Badge label="Everything matched" tone="success" /> : null}
+          {unknownIngredients.length === 0 ? <Badge label="All ingredients recognized" tone="success" /> : null}
         </View>
         <View style={styles.unknownIngredientsList}>
           {unknownIngredients.length > 0 ? (
@@ -247,7 +241,17 @@ export default function ResultScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.sectionEmptyText}>Everything in this input matched the current local ingredient database.</Text>
+            <View style={styles.successStateCard}>
+              <View style={styles.successStateIcon}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              </View>
+              <View style={styles.successStateCopy}>
+                <Text style={styles.successStateTitle}>All ingredients recognized</Text>
+                <Text style={styles.successStateText}>
+                  DermaIQ confidently matched every ingredient in this list against the current local database.
+                </Text>
+              </View>
+            </View>
           )}
         </View>
       </PremiumCard>
@@ -256,9 +260,15 @@ export default function ResultScreen() {
         <PrimaryButton
           label="Analyze another list"
           leftIcon={<Ionicons name="create-outline" size={18} color={colors.surfaceElevated} />}
+          rightIcon={<Ionicons name="arrow-forward" size={18} color={colors.surfaceElevated} />}
           onPress={() => router.back()}
         />
-        <PrimaryButton label="Save result" variant="secondary" size="md" />
+        <PrimaryButton
+          label="Save to history"
+          variant="secondary"
+          size="md"
+          leftIcon={<Ionicons name="bookmark-outline" size={16} color={colors.text} />}
+        />
       </View>
     </Screen>
   );
@@ -296,7 +306,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   heroContent: {
-    gap: spacing.xl,
+    gap: spacing.lg,
+  },
+  productHeader: {
+    gap: spacing.xxs,
   },
   heroHeaderBlock: {
     gap: spacing.sm,
@@ -316,28 +329,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     maxWidth: 360,
   },
-  heroProductRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  imagePlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(85, 113, 94, 0.12)',
-    backgroundColor: 'rgba(255,255,255,0.68)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productCopy: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
   productName: {
-    fontSize: 26,
-    lineHeight: 30,
+    fontSize: 28,
+    lineHeight: 32,
     fontWeight: '700',
     color: colors.text,
     letterSpacing: -0.5,
@@ -401,13 +395,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
-  detailScoreGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  detailScoreStack: {
+    gap: spacing.md,
   },
   detailScoreCard: {
-    minWidth: 150,
+    width: '100%',
+    minWidth: 0,
   },
   explanationCard: {
     gap: spacing.md,
@@ -574,6 +567,36 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
+  successStateCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: '#EAF4ED',
+    borderWidth: 1,
+    borderColor: '#D5E5D9',
+  },
+  successStateIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F7FCF8',
+  },
+  successStateCopy: {
+    flex: 1,
+  },
+  successStateTitle: {
+    ...typography.bodyStrong,
+    color: colors.success,
+  },
+  successStateText: {
+    ...typography.bodySmall,
+    marginTop: spacing.xxs,
+    color: colors.textSecondary,
+  },
   recommendationChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -592,6 +615,6 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.sm,
     paddingBottom: spacing.md,
-    paddingTop: spacing.xs,
+    paddingTop: spacing.md,
   },
 });
