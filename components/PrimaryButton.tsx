@@ -2,74 +2,118 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, shadows, spacing } from '@/lib/theme';
+import { colors, gradients, radius, shadows, spacing } from '@/lib/theme';
 
 type PrimaryButtonProps = {
   label: string;
   onPress?: () => void;
-  icon?: ReactNode;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
   variant?: 'primary' | 'secondary';
   disabled?: boolean;
+  size?: 'md' | 'lg';
 };
 
 export function PrimaryButton({
   label,
   onPress,
-  icon,
+  leftIcon,
+  rightIcon,
   variant = 'primary',
   disabled = false,
+  size = 'lg',
 }: PrimaryButtonProps) {
-  const gradientColors: [string, string] =
-    variant === 'primary' ? [colors.primary, colors.primaryDeep] : [colors.surface, colors.surface];
+  const gradientColors =
+    variant === 'primary' ? gradients.primary : gradients.muted;
 
   return (
-    <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+    >
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[
           styles.button,
+          size === 'md' && styles.buttonMedium,
           variant === 'secondary' && styles.secondaryButton,
           disabled && styles.disabled,
         ]}
       >
-        {icon ? <View style={styles.icon}>{icon}</View> : null}
-        <Text style={[styles.label, variant === 'secondary' && styles.secondaryLabel]}>{label}</Text>
+        <View style={[styles.content, size === 'md' && styles.contentMedium]}>
+          {leftIcon ? <View style={styles.iconLeft}>{leftIcon}</View> : null}
+          <Text
+            style={[
+              styles.label,
+              size === 'md' && styles.labelMedium,
+              variant === 'secondary' && styles.secondaryLabel,
+            ]}
+          >
+            {label}
+          </Text>
+          {rightIcon ? <View style={styles.iconRight}>{rightIcon}</View> : null}
+        </View>
       </LinearGradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    width: '100%',
+  },
   button: {
-    minHeight: 58,
+    minHeight: 62,
     borderRadius: radius.pill,
+    paddingHorizontal: spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    ...shadows.glow,
+  },
+  buttonMedium: {
+    minHeight: 52,
+    paddingHorizontal: spacing.lg,
+  },
+  content: {
+    minHeight: 60,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    ...shadows.soft,
+  },
+  contentMedium: {
+    minHeight: 50,
   },
   secondaryButton: {
-    borderWidth: 1,
     borderColor: colors.borderStrong,
+    shadowOpacity: 0.04,
+    elevation: 2,
   },
   label: {
-    color: colors.surface,
+    color: colors.surfaceElevated,
     fontSize: 16,
+    lineHeight: 20,
     fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  labelMedium: {
+    fontSize: 15,
   },
   secondaryLabel: {
     color: colors.text,
   },
-  icon: {
+  iconLeft: {
     marginRight: spacing.sm,
+  },
+  iconRight: {
+    marginLeft: spacing.sm,
   },
   disabled: {
     opacity: 0.45,
   },
   pressed: {
-    opacity: 0.9,
+    opacity: 0.96,
   },
 });

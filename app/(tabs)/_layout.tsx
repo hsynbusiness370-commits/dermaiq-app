@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
-import { colors, shadows } from '@/lib/theme';
+import { colors, radius, shadows } from '@/lib/theme';
 
 export default function TabsLayout() {
   return (
@@ -11,19 +11,25 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primaryDeep,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopWidth: 0,
-          height: 84,
+          backgroundColor: colors.surfaceElevated,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(213, 203, 188, 0.5)',
+          height: 92,
           paddingTop: 12,
-          paddingBottom: 12,
-          ...shadows.medium,
+          paddingBottom: 16,
+          ...shadows.soft,
         },
         sceneStyle: {
           backgroundColor: colors.background,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: '700',
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          marginHorizontal: 4,
+          borderRadius: radius.md,
         },
       }}
     >

@@ -5,10 +5,11 @@ import { colors, radius, shadows, spacing } from '@/lib/theme';
 
 type PremiumCardProps = PropsWithChildren<{
   style?: StyleProp<ViewStyle>;
+  variant?: 'default' | 'tinted' | 'elevated';
 }>;
 
-export function PremiumCard({ children, style }: PremiumCardProps) {
-  return <View style={[styles.card, style]}>{children}</View>;
+export function PremiumCard({ children, style, variant = 'default' }: PremiumCardProps) {
+  return <View style={[styles.card, variant === 'tinted' && styles.tintedCard, variant === 'elevated' && styles.elevatedCard, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -19,5 +20,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.lg,
     ...shadows.soft,
+  },
+  tintedCard: {
+    backgroundColor: colors.surfaceTint,
+    borderColor: '#D7E2D9',
+  },
+  elevatedCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderColor: '#ECE5DA',
+    ...shadows.medium,
   },
 });

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { DimensionValue, StyleSheet, Text, View } from 'react-native';
@@ -9,18 +10,32 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { skinGoals, skinTypes } from '@/lib/mock-data';
 import { usePreferences } from '@/lib/preferences-context';
-import { colors, radius, shadows, spacing, typography } from '@/lib/theme';
+import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
 
-const onboardingSteps = [
+const stepMeta = [
   {
     key: 'skin-type',
-    title: 'What is your skin type?',
-    description: 'Pick the profile that feels closest today. You can adjust it later.',
+    eyebrow: 'Skin profile',
+    title: 'Build a skincare profile that already feels personal.',
+    description: 'Choose the skin type that best reflects how your skin behaves most days.',
+    options: [
+      { label: skinTypes[0], description: 'Comforted by richer moisture', icon: 'water-outline' },
+      { label: skinTypes[1], description: 'Shine-prone through the day', icon: 'sunny-outline' },
+      { label: skinTypes[2], description: 'Balanced with occasional shifts', icon: 'shuffle-outline' },
+      { label: skinTypes[3], description: 'Easily reactive or delicate', icon: 'leaf-outline' },
+    ],
   },
   {
     key: 'skin-goal',
-    title: 'What are you focusing on?',
-    description: 'This helps DermaIQ tailor how your scan results are framed.',
+    eyebrow: 'Focus',
+    title: 'Tell DermaIQ what you want to improve next.',
+    description: 'We will frame each future scan around the outcome you care about most.',
+    options: [
+      { label: skinGoals[0], description: 'Reduce congestion and breakouts', icon: 'sparkles-outline' },
+      { label: skinGoals[1], description: 'Support firmness and smoothness', icon: 'hourglass-outline' },
+      { label: skinGoals[2], description: 'Boost softness and moisture retention', icon: 'water-outline' },
+      { label: skinGoals[3], description: 'Prioritize radiance and clarity', icon: 'sunny-outline' },
+    ],
   },
 ] as const;
 
@@ -28,11 +43,8 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const { skinGoal, skinType, setSkinGoal, setSkinType } = usePreferences();
 
-  const isLastStep = step === onboardingSteps.length - 1;
-  const progressWidth = useMemo<DimensionValue>(
-    () => `${((step + 1) / onboardingSteps.length) * 100}%`,
-    [step]
-  );
+  const isLastStep = step === stepMeta.length - 1;
+  const progressWidth = useMemo<DimensionValue>(() => `${((step + 1) / stepMeta.length) * 100}%`, [step]);
 
   const handleContinue = () => {
     if (isLastStep) {
@@ -45,65 +57,86 @@ export default function OnboardingScreen() {
 
   return (
     <Screen contentContainerStyle={styles.content}>
-      <View style={styles.heroCard}>
-        <View style={styles.heroBadge}>
-          <Ionicons name="sparkles" size={18} color={colors.primaryDeep} />
-          <Text style={styles.heroBadgeText}>DermaIQ</Text>
+      <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <View style={styles.heroBadge}>
+            <Ionicons name="sparkles" size={16} color={colors.primaryDeep} />
+            <Text style={styles.heroBadgeText}>DermaIQ</Text>
+          </View>
+          <Text style={styles.progressText}>
+            {step + 1}/{stepMeta.length}
+          </Text>
         </View>
-        <Text style={styles.heroTitle}>Personalized skincare guidance in two quick steps.</Text>
+
+        <Text style={styles.heroTitle}>Premium skincare analysis, tailored in moments.</Text>
         <Text style={styles.heroBody}>
-          A premium AI companion for product scans, ingredient clarity, and skin-aware insights.
+          A softer setup before smarter scans: set your profile once and get cleaner, more relevant product insights.
         </Text>
+
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: progressWidth }]} />
         </View>
-        <Text style={styles.progressLabel}>
-          Step {step + 1} of {onboardingSteps.length}
-        </Text>
-      </View>
 
-      <PremiumCard>
-        <Text style={styles.stepTitle}>{onboardingSteps[step].title}</Text>
-        <Text style={styles.stepBody}>{onboardingSteps[step].description}</Text>
+        <View style={styles.progressDots}>
+          {stepMeta.map((item, index) => (
+            <View key={item.key} style={[styles.progressDot, index === step && styles.progressDotActive]} />
+          ))}
+        </View>
+      </LinearGradient>
+
+      <PremiumCard variant="elevated" style={styles.stepCard}>
+        <Text style={styles.stepEyebrow}>{stepMeta[step].eyebrow}</Text>
+        <Text style={styles.stepTitle}>{stepMeta[step].title}</Text>
+        <Text style={styles.stepBody}>{stepMeta[step].description}</Text>
 
         <View style={styles.optionStack}>
           {step === 0
-            ? skinTypes.map((option) => (
+            ? stepMeta[0].options.map((option) => (
                 <OptionChip
-                  key={option}
-                  label={option}
-                  selected={skinType === option}
-                  onPress={() => setSkinType(option)}
+                  key={option.label}
+                  label={option.label}
+                  description={option.description}
+                  selected={skinType === option.label}
+                  icon={<Ionicons name={option.icon} size={20} color={colors.primaryDeep} />}
+                  onPress={() => setSkinType(option.label)}
                 />
               ))
-            : skinGoals.map((option) => (
+            : stepMeta[1].options.map((option) => (
                 <OptionChip
-                  key={option}
-                  label={option}
-                  selected={skinGoal === option}
-                  onPress={() => setSkinGoal(option)}
+                  key={option.label}
+                  label={option.label}
+                  description={option.description}
+                  selected={skinGoal === option.label}
+                  icon={<Ionicons name={option.icon} size={20} color={colors.primaryDeep} />}
+                  onPress={() => setSkinGoal(option.label)}
                 />
               ))}
         </View>
 
         <View style={styles.footerRow}>
           {step > 0 ? (
-            <PrimaryButton label="Back" variant="secondary" onPress={() => setStep((current) => current - 1)} />
+            <View style={styles.secondaryButton}>
+              <PrimaryButton label="Back" size="md" variant="secondary" onPress={() => setStep((current) => current - 1)} />
+            </View>
           ) : null}
           <View style={styles.flexButton}>
-            <PrimaryButton label={isLastStep ? 'Start exploring' : 'Continue'} onPress={handleContinue} />
+            <PrimaryButton
+              label={isLastStep ? 'Enter DermaIQ' : 'Continue'}
+              rightIcon={<Ionicons name="arrow-forward" size={18} color={colors.surfaceElevated} />}
+              onPress={handleContinue}
+            />
           </View>
         </View>
       </PremiumCard>
 
-      <View style={styles.featureRow}>
-        <View style={styles.featurePill}>
-          <Ionicons name="scan" size={16} color={colors.primaryDeep} />
-          <Text style={styles.featureText}>Fast product scans</Text>
+      <View style={styles.trustRow}>
+        <View style={styles.trustPill}>
+          <Ionicons name="scan-outline" size={16} color={colors.primaryDeep} />
+          <Text style={styles.trustText}>Two-step setup</Text>
         </View>
-        <View style={styles.featurePill}>
-          <Ionicons name="leaf-outline" size={16} color={colors.primaryDeep} />
-          <Text style={styles.featureText}>Skin-aware scoring</Text>
+        <View style={styles.trustPill}>
+          <Ionicons name="shield-checkmark-outline" size={16} color={colors.primaryDeep} />
+          <Text style={styles.trustText}>Elegant AI summaries</Text>
         </View>
       </View>
     </Screen>
@@ -112,66 +145,97 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    justifyContent: 'space-between',
     gap: spacing.xl,
+    justifyContent: 'space-between',
   },
   heroCard: {
+    borderRadius: radius.xl,
     padding: spacing.xl,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#D6E8DD',
+    borderColor: '#E7E0D2',
     ...shadows.soft,
   },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
   heroBadge: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    marginBottom: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.75)',
   },
   heroBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
     color: colors.primaryDeep,
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  progressText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
   },
   heroTitle: {
     ...typography.title,
+    fontSize: 32,
+    lineHeight: 38,
     marginBottom: spacing.sm,
+    maxWidth: 320,
   },
   heroBody: {
     ...typography.body,
-    color: colors.textSecondary,
     marginBottom: spacing.lg,
+    maxWidth: 360,
   },
   progressTrack: {
-    height: 8,
-    backgroundColor: '#DCE9E0',
+    height: 10,
     borderRadius: radius.pill,
     overflow: 'hidden',
+    backgroundColor: 'rgba(85, 113, 94, 0.12)',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
     borderRadius: radius.pill,
+    backgroundColor: colors.primaryDeep,
   },
-  progressLabel: {
-    marginTop: spacing.sm,
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
+  progressDots: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(85, 113, 94, 0.2)',
+  },
+  progressDotActive: {
+    width: 24,
+    backgroundColor: colors.primaryDeep,
+  },
+  stepCard: {
+    gap: spacing.md,
+  },
+  stepEyebrow: {
+    ...typography.eyebrow,
+    color: colors.primaryDeep,
   },
   stepTitle: {
     ...typography.sectionTitle,
-    marginBottom: spacing.xs,
+    fontSize: 28,
+    lineHeight: 34,
   },
   stepBody: {
     ...typography.body,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xs,
   },
   optionStack: {
     gap: spacing.sm,
@@ -179,30 +243,34 @@ const styles = StyleSheet.create({
   footerRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    width: 108,
   },
   flexButton: {
     flex: 1,
   },
-  featureRow: {
+  trustRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  featurePill: {
+  trustPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
     borderColor: colors.border,
   },
-  featureText: {
-    fontSize: 14,
-    fontWeight: '600',
+  trustText: {
+    ...typography.bodySmall,
     color: colors.text,
+    fontWeight: '600',
   },
 });
