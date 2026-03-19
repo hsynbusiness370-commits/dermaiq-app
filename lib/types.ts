@@ -111,7 +111,8 @@ export type ProductCatalogEntry = {
 
 export type ProductSearchResponse = {
   query: string;
-  status: 'empty' | 'found' | 'not_found';
-  source: 'local';
+  status: 'empty' | 'found' | 'not_found' | 'missing_ingredients';
+  source: 'local' | 'external';
   results: ProductCatalogEntry[];
+  message?: string;
 };

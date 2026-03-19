@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Badge } from '@/components/Badge';
 import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
@@ -168,9 +169,12 @@ export default function ScanScreen() {
 
                 {searchResponse?.status === 'found' ? (
                   <View style={styles.resultsSection}>
-                    <Text style={styles.resultsTitle}>
-                      {searchResponse.results.length === 1 ? 'Best match' : 'Select a product'}
-                    </Text>
+                    <View style={styles.resultsHeader}>
+                      <Text style={styles.resultsTitle}>
+                        {searchResponse.results.length === 1 ? 'Best match' : 'Select a product'}
+                      </Text>
+                      {searchResponse.source === 'external' ? <Badge label="Fetched externally" tone="premium" /> : null}
+                    </View>
                     <View style={styles.resultsList}>
                       {searchResponse.results.map((product) => (
                         <Pressable
@@ -209,9 +213,22 @@ export default function ScanScreen() {
                   </PremiumCard>
                 ) : null}
 
+                {searchResponse?.status === 'missing_ingredients' ? (
+                  <PremiumCard variant="tinted" style={styles.notFoundCard}>
+                    <View style={styles.notFoundIcon}>
+                      <Ionicons name="alert-circle-outline" size={20} color={colors.warning} />
+                    </View>
+                    <Text style={styles.notFoundTitle}>We found this product, but couldn&apos;t extract ingredients yet.</Text>
+                    <Text style={styles.notFoundText}>
+                      {searchResponse.message ??
+                        'Try another product name or paste ingredients manually so DermaIQ can analyze it.'}
+                    </Text>
+                  </PremiumCard>
+                ) : null}
+
                 <Text style={styles.helperText} lineBreakStrategyIOS="standard">
-                  Search is currently powered by a local catalog. The same search layer can later connect to external
-                  product APIs and barcode lookups.
+                  Search checks the local catalog first, then falls back to an external product source that can later
+                  expand into real APIs and barcode lookups.
                 </Text>
               </LinearGradient>
             ) : (
@@ -606,6 +623,12 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   resultsSection: {
+    gap: spacing.sm,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   resultsTitle: {

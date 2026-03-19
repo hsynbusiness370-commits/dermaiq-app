@@ -1,3 +1,4 @@
+import { fetchExternalProducts, getExternalProductDisplayName, normalizeExternalProduct } from './external-product-fetch';
 import { productCatalog } from './product-catalog';
 import { ProductCatalogEntry, ProductSearchResponse } from './types';
 
@@ -82,10 +83,36 @@ export async function searchProducts(query: string): Promise<ProductSearchRespon
     };
   }
 
+  const externalRawResults = await fetchExternalProducts(trimmedQuery);
+  const externalResults = externalRawResults
+    .map(normalizeExternalProduct)
+    .filter((result): result is ProductCatalogEntry => Boolean(result));
+
+  if (externalResults.length > 0) {
+    return {
+      query: trimmedQuery,
+      status: 'found',
+      source: 'external',
+      results: externalResults,
+    };
+  }
+
+  if (externalRawResults.length > 0) {
+    return {
+      query: trimmedQuery,
+      status: 'missing_ingredients',
+      source: 'external',
+      results: [],
+      message: `We found ${getExternalProductDisplayName(
+        externalRawResults[0]
+      )}, but couldn’t extract ingredients yet.`,
+    };
+  }
+
   return {
     query: trimmedQuery,
     status: 'not_found',
-    source: 'local',
+    source: 'external',
     results: [],
   };
 }
