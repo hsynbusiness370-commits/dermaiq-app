@@ -11,6 +11,10 @@ function normalizeValue(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+function normalizeBarcode(value: string) {
+  return value.replace(/[^a-zA-Z0-9]/g, '').trim();
+}
+
 function createProductKey(product: ProductCatalogEntry) {
   return `${normalizeValue(product.brand)}::${normalizeValue(product.name)}`;
 }
@@ -132,4 +136,20 @@ export async function searchStoredProducts(query: string) {
     .sort((left, right) => right.score - left.score)
     .map((entry) => entry.product)
     .slice(0, 5);
+}
+
+export async function findStoredProductByBarcode(barcode: string) {
+  const normalizedBarcode = normalizeBarcode(barcode);
+
+  if (!normalizedBarcode) {
+    return null;
+  }
+
+  const storedProducts = await getStoredProducts();
+
+  return (
+    storedProducts.find(
+      (product) => product.barcode && normalizeBarcode(product.barcode) === normalizedBarcode
+    ) ?? null
+  );
 }

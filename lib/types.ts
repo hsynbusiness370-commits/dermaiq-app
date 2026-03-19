@@ -124,6 +124,14 @@ export type ProductSearchResponse = {
   message?: string;
 };
 
+export type BarcodeLookupResponse = {
+  barcode: string;
+  status: 'found' | 'missing_ingredients' | 'not_found' | 'invalid_barcode' | 'error';
+  source: 'local' | 'stored' | 'external';
+  results: ProductCatalogEntry[];
+  message?: string;
+};
+
 export type UserPlan = 'free' | 'premium';
 
 export type PlanState = {

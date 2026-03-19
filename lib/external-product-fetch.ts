@@ -14,8 +14,15 @@ type OpenBeautyFactsResponse = {
   products?: ExternalRawProduct[];
 };
 
+type OpenBeautyFactsBarcodeResponse = {
+  status?: number;
+  product?: ExternalRawProduct;
+};
+
 const EXTERNAL_SEARCH_ENDPOINT = 'https://world.openbeautyfacts.org/cgi/search.pl';
+const EXTERNAL_BARCODE_ENDPOINT = 'https://world.openbeautyfacts.org/api/v2/product';
 const externalProductCache = new Map<string, ExternalRawProduct[]>();
+const externalBarcodeCache = new Map<string, ExternalRawProduct | null>();
 
 function normalizeValue(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -110,6 +117,45 @@ export async function fetchExternalProducts(query: string): Promise<ExternalRawP
 
     externalProductCache.set(cacheKey, fetchedResults);
     return fetchedResults;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function fetchExternalProductByBarcode(barcode: string): Promise<ExternalRawProduct | null> {
+  const trimmedBarcode = barcode.trim();
+
+  if (!trimmedBarcode) {
+    return null;
+  }
+
+  const cachedResult = externalBarcodeCache.get(trimmedBarcode);
+
+  if (cachedResult !== undefined) {
+    return cachedResult;
+  }
+
+  const url = new URL(`${EXTERNAL_BARCODE_ENDPOINT}/${trimmedBarcode}.json`);
+  url.search = new URLSearchParams({
+    fields: 'product_name,brands,categories,ingredients_text,ingredients_text_en,code,image_url',
+  }).toString();
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url.toString(), {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Open Beauty Facts barcode request failed with status ${response.status}`);
+    }
+
+    const data = (await response.json()) as OpenBeautyFactsBarcodeResponse;
+    const result = data.status === 1 && data.product ? data.product : null;
+    externalBarcodeCache.set(trimmedBarcode, result);
+    return result;
   } finally {
     clearTimeout(timeout);
   }

@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BarcodeScanningResult, CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
@@ -11,14 +13,28 @@ import { Screen } from '@/components/Screen';
 import { parseIngredientList, sampleIngredientInput } from '@/lib/ingredient-parser';
 import { usePlan } from '@/lib/plan-context';
 import { buildCatalogProduct, buildManualProduct } from '@/lib/product-builder';
-import { searchProducts } from '@/lib/product-search';
+import { lookupProductByBarcode, searchProducts } from '@/lib/product-search';
 import { analyzeProduct } from '@/lib/scoring';
 import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
-import { ManualAnalysisPayload, ProductCatalogEntry, ProductSearchResponse } from '@/lib/types';
+import {
+  BarcodeLookupResponse,
+  ManualAnalysisPayload,
+  ProductCatalogEntry,
+  ProductSearchResponse,
+} from '@/lib/types';
 import { usePreferences } from '@/lib/preferences-context';
 
 type ScanMode = 'Photo' | 'Barcode' | 'Ingredients';
 type IngredientsEntryMode = 'search' | 'manual';
+
+type BarcodeUiState =
+  | { status: 'idle' }
+  | { status: 'processing'; message: string }
+  | { status: 'success'; message: string }
+  | { status: 'missing_ingredients'; message: string }
+  | { status: 'not_found'; message: string }
+  | { status: 'invalid_barcode'; message: string }
+  | { status: 'error'; message: string };
 
 function encodePayload(payload: ManualAnalysisPayload) {
   return encodeURIComponent(JSON.stringify(payload));
@@ -30,8 +46,12 @@ export default function ScanScreen() {
   const [ingredientInput, setIngredientInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResponse, setSearchResponse] = useState<ProductSearchResponse | null>(null);
+  const [barcodeState, setBarcodeState] = useState<BarcodeUiState>({ status: 'idle' });
+  const [isBarcodeLocked, setIsBarcodeLocked] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const isFocused = useIsFocused();
   const { userProfile } = usePreferences();
   const { consumeAnalysis, isHydrated: isPlanHydrated, isPremium, remainingAnalyses } = usePlan();
 
@@ -49,6 +69,21 @@ export default function ScanScreen() {
       },
     });
   };
+
+  const resetBarcodeScanner = () => {
+    setBarcodeState({ status: 'idle' });
+    setIsBarcodeLocked(false);
+  };
+
+  useEffect(() => {
+    if (!isFocused || mode !== 'Barcode') {
+      return;
+    }
+
+    if (barcodeState.status === 'success') {
+      resetBarcodeScanner();
+    }
+  }, [barcodeState.status, isFocused, mode]);
 
   const handleAnalyzeIngredients = () => {
     if (!canAnalyzeManual) {
@@ -111,12 +146,92 @@ export default function ScanScreen() {
     })();
   };
 
+  const handleBarcodeLookupResult = async (lookupResult: BarcodeLookupResponse) => {
+    if (lookupResult.status === 'found' && lookupResult.results[0]) {
+      const access = await consumeAnalysis();
+
+      if (!access.allowed) {
+        resetBarcodeScanner();
+        router.push('/premium');
+        return;
+      }
+
+      const product = lookupResult.results[0];
+      const parsed = parseIngredientList(product.ingredientList);
+      const builtProduct = buildCatalogProduct(product, parsed.matchedIngredients);
+      const analysis = analyzeProduct(builtProduct, userProfile, {
+        unknownIngredients: parsed.unknownIngredients,
+      });
+
+      setBarcodeState({ status: 'success', message: 'Product found. Opening analysis...' });
+
+      navigateToAnalysis({
+        analysis,
+        matchedIngredients: parsed.matchedIngredients,
+        unknownIngredients: parsed.unknownIngredients,
+        rawInput: product.ingredientList,
+      });
+      return;
+    }
+
+    if (lookupResult.status === 'missing_ingredients') {
+      setBarcodeState({
+        status: 'missing_ingredients',
+        message:
+          lookupResult.message ?? 'We found the product, but couldn’t extract ingredients yet.',
+      });
+      return;
+    }
+
+    if (lookupResult.status === 'invalid_barcode') {
+      setBarcodeState({
+        status: 'invalid_barcode',
+        message:
+          lookupResult.message ?? 'That barcode could not be read clearly. Try aligning it inside the frame.',
+      });
+      return;
+    }
+
+    if (lookupResult.status === 'error') {
+      setBarcodeState({
+        status: 'error',
+        message:
+          lookupResult.message ?? 'We couldn’t reach barcode lookup right now. Try again in a moment.',
+      });
+      return;
+    }
+
+    setBarcodeState({
+      status: 'not_found',
+      message: lookupResult.message ?? 'We couldn’t find that barcode yet.',
+    });
+  };
+
+  const handleBarcodeScanned = ({ data }: BarcodeScanningResult) => {
+    if (!isFocused || mode !== 'Barcode' || isBarcodeLocked) {
+      return;
+    }
+
+    setIsBarcodeLocked(true);
+    setBarcodeState({
+      status: 'processing',
+      message: 'Processing barcode...',
+    });
+
+    void (async () => {
+      const lookupResult = await lookupProductByBarcode(data);
+      await handleBarcodeLookupResult(lookupResult);
+    })();
+  };
+
   return (
     <Screen contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.kicker}>DermaIQ Scan</Text>
         <Text style={styles.title}>Analyze ingredients</Text>
-        <Text style={styles.subtitle}>Search a product or paste a formula to get a DermaIQ verdict tailored to your skin profile.</Text>
+        <Text style={styles.subtitle}>
+          Search a product, scan a barcode, or paste a formula to get a DermaIQ verdict tailored to your skin profile.
+        </Text>
       </View>
 
       <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
@@ -125,10 +240,10 @@ export default function ScanScreen() {
           <Text style={styles.heroBadgeText}>AI-assisted analysis</Text>
         </View>
         <Text style={styles.heroTitle} lineBreakStrategyIOS="standard">
-          Search a product or feed the formula into DermaIQ.
+          Search, scan, or feed the formula into DermaIQ.
         </Text>
         <Text style={styles.heroBody} lineBreakStrategyIOS="standard">
-          Product search checks a local catalog first, while manual ingredient analysis stays available anytime.
+          Product search checks a local catalog first, barcode lookup follows the same layered path, and manual ingredient analysis stays available anytime.
         </Text>
       </LinearGradient>
 
@@ -140,7 +255,7 @@ export default function ScanScreen() {
               <View style={styles.segmentContent}>
                 <Text style={[styles.segmentLabel, mode === item && styles.segmentLabelActive]}>{item}</Text>
                 <Text style={[styles.segmentMeta, mode === item && styles.segmentMetaActive]}>
-                  {item === 'Ingredients' ? 'Live' : 'Soon'}
+                  {item === 'Photo' ? 'Soon' : 'Live'}
                 </Text>
               </View>
             </Pressable>
@@ -150,11 +265,21 @@ export default function ScanScreen() {
         {mode === 'Ingredients' ? (
           <>
             <View style={styles.entryModeRow}>
-              <Pressable onPress={() => setEntryMode('search')} style={[styles.entryModeChip, entryMode === 'search' && styles.entryModeChipActive]}>
-                <Text style={[styles.entryModeText, entryMode === 'search' && styles.entryModeTextActive]}>Search product</Text>
+              <Pressable
+                onPress={() => setEntryMode('search')}
+                style={[styles.entryModeChip, entryMode === 'search' && styles.entryModeChipActive]}
+              >
+                <Text style={[styles.entryModeText, entryMode === 'search' && styles.entryModeTextActive]}>
+                  Search product
+                </Text>
               </Pressable>
-              <Pressable onPress={() => setEntryMode('manual')} style={[styles.entryModeChip, entryMode === 'manual' && styles.entryModeChipActive]}>
-                <Text style={[styles.entryModeText, entryMode === 'manual' && styles.entryModeTextActive]}>Paste ingredients</Text>
+              <Pressable
+                onPress={() => setEntryMode('manual')}
+                style={[styles.entryModeChip, entryMode === 'manual' && styles.entryModeChipActive]}
+              >
+                <Text style={[styles.entryModeText, entryMode === 'manual' && styles.entryModeTextActive]}>
+                  Paste ingredients
+                </Text>
               </Pressable>
             </View>
 
@@ -197,7 +322,9 @@ export default function ScanScreen() {
                       <Text style={styles.resultsTitle}>
                         {searchResponse.results.length === 1 ? 'Best match' : 'Select a product'}
                       </Text>
-                      {searchResponse.source === 'external' ? <Badge label="Fetched externally" tone="premium" /> : null}
+                      {searchResponse.source === 'external' ? (
+                        <Badge label="Fetched externally" tone="premium" />
+                      ) : null}
                     </View>
                     <View style={styles.resultsList}>
                       {searchResponse.results.map((product) => (
@@ -215,9 +342,15 @@ export default function ScanScreen() {
                                   {product.category} · {product.ingredientList.split(',').length} listed ingredients
                                 </Text>
                               </View>
-                              <Ionicons name="arrow-forward-circle-outline" size={22} color={colors.primaryDeep} />
+                              <Ionicons
+                                name="arrow-forward-circle-outline"
+                                size={22}
+                                color={colors.primaryDeep}
+                              />
                             </View>
-                            <Text style={styles.resultHint}>Tap to analyze this product with your current skin profile.</Text>
+                            <Text style={styles.resultHint}>
+                              Tap to analyze this product with your current skin profile.
+                            </Text>
                           </PremiumCard>
                         </Pressable>
                       ))}
@@ -243,7 +376,9 @@ export default function ScanScreen() {
                     <View style={styles.notFoundIcon}>
                       <Ionicons name="alert-circle-outline" size={20} color={colors.warning} />
                     </View>
-                    <Text style={styles.notFoundTitle}>We found this product, but couldn&apos;t extract ingredients yet.</Text>
+                    <Text style={styles.notFoundTitle}>
+                      We found this product, but couldn&apos;t extract ingredients yet.
+                    </Text>
                     <Text style={styles.notFoundText}>
                       {searchResponse.message ??
                         'Try another product name or paste ingredients manually so DermaIQ can analyze it.'}
@@ -252,8 +387,7 @@ export default function ScanScreen() {
                 ) : null}
 
                 <Text style={styles.helperText} lineBreakStrategyIOS="standard">
-                  Search checks the local catalog first, then falls back to an external product source that can later
-                  expand into real APIs and barcode lookups.
+                  Search checks the local catalog first, then stored products, then external product sources.
                 </Text>
               </LinearGradient>
             ) : (
@@ -321,24 +455,138 @@ export default function ScanScreen() {
               </LinearGradient>
             )}
           </>
+        ) : mode === 'Barcode' ? (
+          <View style={styles.barcodeShell}>
+            {!cameraPermission ? (
+              <PremiumCard variant="tinted" style={styles.permissionCard}>
+                <Text style={styles.permissionTitle}>Preparing camera access…</Text>
+                <Text style={styles.permissionText}>
+                  DermaIQ is checking whether barcode scanning is available on this device.
+                </Text>
+              </PremiumCard>
+            ) : !cameraPermission.granted ? (
+              <PremiumCard variant="tinted" style={styles.permissionCard}>
+                <View style={styles.permissionIcon}>
+                  <Ionicons name="camera-outline" size={20} color={colors.primaryDeep} />
+                </View>
+                <Text style={styles.permissionTitle}>Allow camera access to scan barcodes</Text>
+                <Text style={styles.permissionText}>
+                  DermaIQ needs camera access to read product barcodes and look up ingredients automatically.
+                </Text>
+                <PrimaryButton
+                  label="Enable camera"
+                  size="md"
+                  onPress={() => {
+                    void requestCameraPermission();
+                  }}
+                />
+                <View style={styles.barcodeFallbackRow}>
+                  <Pressable
+                    onPress={() => {
+                      setMode('Ingredients');
+                      setEntryMode('search');
+                    }}
+                    style={({ pressed }) => [
+                      styles.barcodeFallbackChip,
+                      pressed && styles.barcodeFallbackChipPressed,
+                    ]}
+                  >
+                    <Text style={styles.barcodeFallbackChipText}>Search product</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setMode('Ingredients');
+                      setEntryMode('manual');
+                    }}
+                    style={({ pressed }) => [
+                      styles.barcodeFallbackChip,
+                      pressed && styles.barcodeFallbackChipPressed,
+                    ]}
+                  >
+                    <Text style={styles.barcodeFallbackChipText}>Paste ingredients</Text>
+                  </Pressable>
+                </View>
+              </PremiumCard>
+            ) : (
+              <>
+                <View style={styles.cameraFrame}>
+                  <CameraView
+                    style={styles.cameraView}
+                    facing="back"
+                    active={isFocused && mode === 'Barcode'}
+                    onBarcodeScanned={isBarcodeLocked ? undefined : handleBarcodeScanned}
+                    barcodeScannerSettings={{
+                      barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'itf14'],
+                    }}
+                  />
+                  <View pointerEvents="none" style={styles.cameraOverlay}>
+                    <View style={styles.scannerFrame} />
+                    <Text style={styles.cameraHint}>Align the barcode inside the frame</Text>
+                  </View>
+                </View>
+
+                {barcodeState.status !== 'idle' ? (
+                  <PremiumCard variant="tinted" style={styles.barcodeStatusCard}>
+                    <Text style={styles.barcodeStatusTitle}>
+                      {barcodeState.status === 'processing'
+                        ? 'Processing barcode…'
+                        : barcodeState.status === 'success'
+                          ? 'Opening analysis…'
+                          : barcodeState.status === 'missing_ingredients'
+                            ? 'Ingredients missing'
+                            : barcodeState.status === 'invalid_barcode'
+                              ? 'Barcode not read clearly'
+                              : barcodeState.status === 'error'
+                                ? 'Lookup unavailable'
+                                : 'Barcode not found'}
+                    </Text>
+                    <Text style={styles.barcodeStatusText}>{barcodeState.message}</Text>
+                    {barcodeState.status !== 'processing' && barcodeState.status !== 'success' ? (
+                      <View style={styles.barcodeStatusActions}>
+                        <PrimaryButton label="Scan again" size="md" onPress={resetBarcodeScanner} />
+                        <Pressable
+                          onPress={() => {
+                            setMode('Ingredients');
+                            setEntryMode('search');
+                            resetBarcodeScanner();
+                          }}
+                          style={({ pressed }) => [styles.switchPill, pressed && styles.switchPillPressed]}
+                        >
+                          <Text style={styles.switchPillText}>Search product</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => {
+                            setMode('Ingredients');
+                            setEntryMode('manual');
+                            resetBarcodeScanner();
+                          }}
+                          style={({ pressed }) => [styles.switchPill, pressed && styles.switchPillPressed]}
+                        >
+                          <Text style={styles.switchPillText}>Paste ingredients</Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </PremiumCard>
+                ) : (
+                  <Text style={styles.barcodeHelperText}>
+                    Barcode lookup checks the static catalog first, then saved products, then Open Beauty Facts.
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
         ) : (
           <View style={styles.comingSoonModule}>
             <View style={styles.comingSoonTopRow}>
               <View style={styles.comingSoonIcon}>
-                <Ionicons
-                  name={mode === 'Photo' ? 'camera-outline' : 'barcode-outline'}
-                  size={20}
-                  color={colors.primaryDeep}
-                />
+                <Ionicons name="camera-outline" size={20} color={colors.primaryDeep} />
               </View>
               <View style={styles.comingSoonCopy}>
                 <Text style={styles.comingSoonTitle} lineBreakStrategyIOS="standard">
-                  {mode === 'Photo' ? 'Photo analysis arrives soon' : 'Barcode lookup arrives soon'}
+                  Photo analysis arrives soon
                 </Text>
                 <Text style={styles.comingSoonBody} lineBreakStrategyIOS="standard">
-                  {mode === 'Photo'
-                    ? 'For now, search the local catalog or paste ingredients to run a real analysis.'
-                    : 'For now, search a product name or analyze a formula manually.'}
+                  For now, search the local catalog, scan a barcode, or paste ingredients to run a real analysis.
                 </Text>
               </View>
             </View>
@@ -357,6 +605,10 @@ export default function ScanScreen() {
             <Text style={styles.tipText}>Search local products</Text>
           </View>
           <View style={styles.tipPill}>
+            <Ionicons name="barcode-outline" size={16} color={colors.primaryDeep} />
+            <Text style={styles.tipText}>Live barcode lookup</Text>
+          </View>
+          <View style={styles.tipPill}>
             <Ionicons name="sparkles-outline" size={16} color={colors.primaryDeep} />
             <Text style={styles.tipText}>Fast AI-ready analysis</Text>
           </View>
@@ -371,18 +623,33 @@ export default function ScanScreen() {
               : 'Syncing your free plan access...'}
           </Text>
         ) : null}
-        {entryMode === 'manual' && !trimmedInput && mode === 'Ingredients' ? (
+        {mode === 'Ingredients' && entryMode === 'manual' && !trimmedInput ? (
           <Text style={styles.validationText}>Paste an ingredient list to unlock your analysis.</Text>
         ) : null}
-        {entryMode === 'search' && !trimmedSearchQuery && mode === 'Ingredients' ? (
-          <Text style={styles.validationText}>Type a product name to search the local DermaIQ catalog.</Text>
+        {mode === 'Ingredients' && entryMode === 'search' && !trimmedSearchQuery ? (
+          <Text style={styles.validationText}>Type a product name to search the DermaIQ product layers.</Text>
         ) : null}
-        {mode !== 'Ingredients' ? (
-          <Text style={styles.validationText}>Ingredients is the live input path for the current MVP.</Text>
+        {mode === 'Barcode' && barcodeState.status === 'idle' && cameraPermission?.granted ? (
+          <Text style={styles.validationText}>Point the camera at a product barcode to start lookup automatically.</Text>
+        ) : null}
+        {mode === 'Photo' ? (
+          <Text style={styles.validationText}>Photo mode is still staged. Barcode and ingredients are live first.</Text>
         ) : null}
 
         <View style={styles.ctaWrap}>
-          {entryMode === 'search' ? (
+          {mode === 'Barcode' ? (
+            <PrimaryButton
+              label="Use product search"
+              leftIcon={<Ionicons name="search" size={18} color={colors.surfaceElevated} />}
+              rightIcon={<Ionicons name="arrow-forward" size={18} color={colors.surfaceElevated} />}
+              onPress={() => {
+                setMode('Ingredients');
+                setEntryMode('search');
+                resetBarcodeScanner();
+              }}
+              disabled={barcodeState.status === 'processing'}
+            />
+          ) : mode === 'Ingredients' && entryMode === 'search' ? (
             <PrimaryButton
               label="Search products"
               leftIcon={<Ionicons name="search" size={18} color={colors.surfaceElevated} />}
@@ -724,6 +991,103 @@ const styles = StyleSheet.create({
   notFoundText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+  },
+  barcodeShell: {
+    gap: spacing.md,
+  },
+  cameraFrame: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
+    minHeight: 380,
+  },
+  cameraView: {
+    minHeight: 380,
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(18, 33, 23, 0.18)',
+    paddingHorizontal: spacing.xl,
+  },
+  scannerFrame: {
+    width: '78%',
+    aspectRatio: 1.7,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: 'transparent',
+  },
+  cameraHint: {
+    ...typography.bodySmall,
+    color: colors.surfaceElevated,
+    marginTop: spacing.lg,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
+  barcodeHelperText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  barcodeStatusCard: {
+    gap: spacing.sm,
+  },
+  barcodeStatusTitle: {
+    ...typography.bodyStrong,
+  },
+  barcodeStatusText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  barcodeStatusActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  permissionCard: {
+    gap: spacing.md,
+  },
+  permissionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permissionTitle: {
+    ...typography.sectionTitle,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  permissionText: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  barcodeFallbackRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  barcodeFallbackChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  barcodeFallbackChipPressed: {
+    opacity: 0.96,
+  },
+  barcodeFallbackChipText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '700',
   },
   comingSoonModule: {
     gap: spacing.md,

@@ -1,10 +1,19 @@
-import { fetchExternalProducts, getExternalProductDisplayName, normalizeExternalProduct } from './external-product-fetch';
+import {
+  fetchExternalProductByBarcode,
+  fetchExternalProducts,
+  getExternalProductDisplayName,
+  normalizeExternalProduct,
+} from './external-product-fetch';
 import { productCatalog } from './product-catalog';
-import { saveProducts, searchStoredProducts } from './product-storage';
-import { ProductCatalogEntry, ProductSearchResponse } from './types';
+import { findStoredProductByBarcode, saveProduct, saveProducts, searchStoredProducts } from './product-storage';
+import { BarcodeLookupResponse, ProductCatalogEntry, ProductSearchResponse } from './types';
 
 function normalizeValue(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function normalizeBarcode(value: string) {
+  return value.replace(/[^a-zA-Z0-9]/g, '').trim();
 }
 
 function getSearchScore(product: ProductCatalogEntry, query: string) {
@@ -59,6 +68,20 @@ function searchLocalCatalog(query: string) {
     .sort((left, right) => right.score - left.score)
     .map((entry) => entry.product)
     .slice(0, 5);
+}
+
+function findLocalProductByBarcode(barcode: string) {
+  const normalizedBarcode = normalizeBarcode(barcode);
+
+  if (!normalizedBarcode) {
+    return null;
+  }
+
+  return (
+    productCatalog.find(
+      (product) => product.barcode && normalizeBarcode(product.barcode) === normalizedBarcode
+    ) ?? null
+  );
 }
 
 export async function searchProducts(query: string): Promise<ProductSearchResponse> {
@@ -142,5 +165,88 @@ export async function searchProducts(query: string): Promise<ProductSearchRespon
     source: 'external',
     results: [],
     message: 'We couldn’t find that product yet. Try another product name or paste ingredients manually.',
+  };
+}
+
+export async function lookupProductByBarcode(barcode: string): Promise<BarcodeLookupResponse> {
+  const normalizedBarcode = normalizeBarcode(barcode);
+
+  if (normalizedBarcode.length < 8) {
+    return {
+      barcode,
+      status: 'invalid_barcode',
+      source: 'local',
+      results: [],
+      message: 'That barcode could not be read clearly. Try aligning it inside the frame and scan again.',
+    };
+  }
+
+  const localProduct = findLocalProductByBarcode(normalizedBarcode);
+
+  if (localProduct) {
+    return {
+      barcode: normalizedBarcode,
+      status: 'found',
+      source: 'local',
+      results: [localProduct],
+    };
+  }
+
+  const storedProduct = await findStoredProductByBarcode(normalizedBarcode);
+
+  if (storedProduct) {
+    return {
+      barcode: normalizedBarcode,
+      status: 'found',
+      source: 'stored',
+      results: [storedProduct],
+    };
+  }
+
+  let externalRawProduct: Awaited<ReturnType<typeof fetchExternalProductByBarcode>> = null;
+
+  try {
+    externalRawProduct = await fetchExternalProductByBarcode(normalizedBarcode);
+  } catch {
+    return {
+      barcode: normalizedBarcode,
+      status: 'error',
+      source: 'external',
+      results: [],
+      message: 'We couldn’t reach barcode lookup right now. Try again or switch to product search.',
+    };
+  }
+
+  if (!externalRawProduct) {
+    return {
+      barcode: normalizedBarcode,
+      status: 'not_found',
+      source: 'external',
+      results: [],
+      message: 'We couldn’t find that barcode yet.',
+    };
+  }
+
+  const normalizedProduct = normalizeExternalProduct(externalRawProduct);
+
+  if (!normalizedProduct) {
+    return {
+      barcode: normalizedBarcode,
+      status: 'missing_ingredients',
+      source: 'external',
+      results: [],
+      message: `We found ${getExternalProductDisplayName(
+        externalRawProduct
+      )}, but couldn’t extract ingredients yet.`,
+    };
+  }
+
+  await saveProduct(normalizedProduct);
+
+  return {
+    barcode: normalizedBarcode,
+    status: 'found',
+    source: 'external',
+    results: [normalizedProduct],
   };
 }
