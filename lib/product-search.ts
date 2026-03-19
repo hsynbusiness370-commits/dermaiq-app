@@ -83,7 +83,20 @@ export async function searchProducts(query: string): Promise<ProductSearchRespon
     };
   }
 
-  const externalRawResults = await fetchExternalProducts(trimmedQuery);
+  let externalRawResults = [] as Awaited<ReturnType<typeof fetchExternalProducts>>;
+
+  try {
+    externalRawResults = await fetchExternalProducts(trimmedQuery);
+  } catch {
+    return {
+      query: trimmedQuery,
+      status: 'not_found',
+      source: 'external',
+      results: [],
+      message: 'We couldn’t reach external product data right now. Try another search or paste ingredients manually.',
+    };
+  }
+
   const externalResults = externalRawResults
     .map(normalizeExternalProduct)
     .filter((result): result is ProductCatalogEntry => Boolean(result));
@@ -114,5 +127,6 @@ export async function searchProducts(query: string): Promise<ProductSearchRespon
     status: 'not_found',
     source: 'external',
     results: [],
+    message: 'We couldn’t find that product yet. Try another product name or paste ingredients manually.',
   };
 }

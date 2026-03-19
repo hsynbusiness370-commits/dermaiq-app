@@ -1,44 +1,21 @@
 import { ProductCatalogEntry } from './types';
 
 type ExternalRawProduct = {
-  externalId: string;
-  productTitle?: string;
-  brandName?: string;
-  categoryName?: string;
-  ingredientsText?: string | null;
-  barcode?: string;
-  imageUrl?: string;
+  code?: string;
+  product_name?: string;
+  brands?: string;
+  categories?: string;
+  ingredients_text?: string | null;
+  ingredients_text_en?: string | null;
+  image_url?: string;
 };
 
-const mockExternalProducts: ExternalRawProduct[] = [
-  {
-    externalId: 'ext-1',
-    productTitle: 'Peptide Recovery Serum',
-    brandName: 'Nova Derm',
-    categoryName: 'Serum',
-    ingredientsText: 'Niacinamide, Panthenol, Glycerin, Hyaluronic Acid, Squalane',
-    barcode: '900000111001',
-    imageUrl: 'external-peptide-serum',
-  },
-  {
-    externalId: 'ext-2',
-    productTitle: 'Retinol Renewal Night Serum',
-    brandName: 'Atelier Skin',
-    categoryName: 'Serum',
-    ingredientsText: 'Retinol, Panthenol, Glycerin, Fragrance',
-    barcode: '900000111002',
-    imageUrl: 'external-retinol-serum',
-  },
-  {
-    externalId: 'ext-3',
-    productTitle: 'Cloud Milk Essence',
-    brandName: 'Velour Beauty',
-    categoryName: 'Essence',
-    ingredientsText: null,
-    barcode: '900000111003',
-    imageUrl: 'external-cloud-essence',
-  },
-];
+type OpenBeautyFactsResponse = {
+  products?: ExternalRawProduct[];
+};
+
+const EXTERNAL_SEARCH_ENDPOINT = 'https://world.openbeautyfacts.org/cgi/search.pl';
+const externalProductCache = new Map<string, ExternalRawProduct[]>();
 
 function normalizeValue(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -46,8 +23,8 @@ function normalizeValue(value: string) {
 
 function scoreExternalProduct(product: ExternalRawProduct, query: string) {
   const normalizedQuery = normalizeValue(query);
-  const title = normalizeValue(product.productTitle ?? '');
-  const brand = normalizeValue(product.brandName ?? '');
+  const title = normalizeValue(product.product_name ?? '');
+  const brand = normalizeValue(product.brands ?? '');
   const combined = `${brand} ${title}`.trim();
 
   if (title === normalizedQuery) {
@@ -91,37 +68,82 @@ export async function fetchExternalProducts(query: string): Promise<ExternalRawP
     return [];
   }
 
-  return mockExternalProducts
-    .map((product) => ({
-      product,
-      score: scoreExternalProduct(product, trimmedQuery),
-    }))
-    .filter((entry) => entry.score > 0)
-    .sort((left, right) => right.score - left.score)
-    .map((entry) => entry.product)
-    .slice(0, 5);
+  const cacheKey = normalizeValue(trimmedQuery);
+  const cachedResults = externalProductCache.get(cacheKey);
+
+  if (cachedResults) {
+    return cachedResults;
+  }
+
+  const url = new URL(EXTERNAL_SEARCH_ENDPOINT);
+  url.search = new URLSearchParams({
+    search_terms: trimmedQuery,
+    search_simple: '1',
+    action: 'process',
+    json: '1',
+    page_size: '8',
+    fields: 'product_name,brands,categories,ingredients_text,ingredients_text_en,code,image_url',
+  }).toString();
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url.toString(), {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Open Beauty Facts request failed with status ${response.status}`);
+    }
+
+    const data = (await response.json()) as OpenBeautyFactsResponse;
+    const fetchedResults = (data.products ?? [])
+      .map((product) => ({
+        product,
+        score: scoreExternalProduct(product, trimmedQuery),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .map((entry) => entry.product)
+      .slice(0, 5);
+
+    externalProductCache.set(cacheKey, fetchedResults);
+    return fetchedResults;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function normalizeExternalProduct(rawData: ExternalRawProduct): ProductCatalogEntry | null {
-  const productName = rawData.productTitle?.trim();
-  const brand = rawData.brandName?.trim();
-  const ingredientList = rawData.ingredientsText?.trim();
+  const productName = rawData.product_name?.trim();
+  const brand = rawData.brands
+    ?.split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)[0];
+  const category = rawData.categories
+    ?.split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)[0];
+  const ingredientList = (rawData.ingredients_text_en || rawData.ingredients_text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  if (!productName || !brand || !ingredientList) {
+  if (!productName || !brand || !ingredientList || ingredientList.length < 5) {
     return null;
   }
 
   return {
-    id: `external-${rawData.externalId}`,
+    id: rawData.code ? `external-${rawData.code}` : `external-${normalizeValue(`${brand}-${productName}`)}`,
     name: productName,
     brand,
-    category: rawData.categoryName?.trim() || 'Unknown',
+    category: category || 'Unknown',
     ingredientList,
-    barcode: rawData.barcode,
-    imagePlaceholder: rawData.imageUrl,
+    barcode: rawData.code,
+    imagePlaceholder: rawData.image_url,
   };
 }
 
 export function getExternalProductDisplayName(rawData: ExternalRawProduct) {
-  return rawData.productTitle?.trim() || 'this product';
+  return rawData.product_name?.trim() || 'this product';
 }

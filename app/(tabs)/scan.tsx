@@ -208,7 +208,8 @@ export default function ScanScreen() {
                     </View>
                     <Text style={styles.notFoundTitle}>We couldn&apos;t find that product yet.</Text>
                     <Text style={styles.notFoundText}>
-                      Try another product name or paste ingredients manually to keep the analysis moving.
+                      {searchResponse.message ??
+                        'Try another product name or paste ingredients manually to keep the analysis moving.'}
                     </Text>
                   </PremiumCard>
                 ) : null}
