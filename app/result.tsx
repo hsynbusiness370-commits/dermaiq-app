@@ -9,11 +9,10 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScoreCard } from '@/components/ScoreCard';
 import { Screen } from '@/components/Screen';
-import { SectionHeader } from '@/components/SectionHeader';
 import { usePreferences } from '@/lib/preferences-context';
 import { analyzeProduct } from '@/lib/scoring';
 import { sampleAnalysisProduct } from '@/lib/sample-products';
-import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
+import { colors, radius, shadows, spacing, typography } from '@/lib/theme';
 import { Ingredient, ManualAnalysisPayload } from '@/lib/types';
 
 const verdictTone = {
@@ -21,6 +20,19 @@ const verdictTone = {
   'Use with Caution': 'warning',
   'Not Ideal': 'danger',
 } as const;
+
+const verdictHeadline = {
+  'Great Match': 'Mostly compatible with your skin',
+  'Use with Caution': 'Promising, but with a few risks',
+  'Not Ideal': 'Likely not the best fit for your skin',
+  'Limited match': 'We need a little more clarity',
+} as const;
+
+const verdictGradient = {
+  success: ['#F7FBF7', '#E4EFE7'] as const,
+  warning: ['#FBF7F0', '#F2E4CF'] as const,
+  danger: ['#FBF5F4', '#F1E1DE'] as const,
+};
 
 function getParamValue(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
@@ -41,8 +53,15 @@ function decodePayload(value?: string | string[]): ManualAnalysisPayload | null 
 }
 
 function renderIngredientMeta(ingredient: Ingredient) {
-  const benefitSummary = ingredient.benefits.slice(0, 2).join(' • ');
+  const benefitSummary = ingredient.benefits.slice(0, 1).join(' • ');
   return benefitSummary || 'Known ingredient';
+}
+
+function toTitleCase(value: string) {
+  return value
+    .split(' ')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 export default function ResultScreen() {
@@ -55,36 +74,47 @@ export default function ResultScreen() {
   const matchedIngredients = payload?.matchedIngredients ?? fallbackAnalysis.product.ingredients;
   const unknownIngredients = payload?.unknownIngredients ?? [];
   const hasMatchedIngredients = matchedIngredients.length > 0;
+  const verdictLabel = hasMatchedIngredients ? analysis.verdict : 'Limited match';
+  const verdictColorTone = hasMatchedIngredients ? verdictTone[analysis.verdict] : 'warning';
+  const heroColors =
+    verdictColorTone === 'success'
+      ? verdictGradient.success
+      : verdictColorTone === 'danger'
+        ? verdictGradient.danger
+        : verdictGradient.warning;
+  const overallScore = Math.round(
+    analysis.safetyScore * 0.4 + analysis.skinMatchScore * 0.35 + analysis.effectivenessScore * 0.25
+  );
+  const compactInsight = hasMatchedIngredients
+    ? analysis.explanation
+    : 'We found too few recognizable ingredients to deliver a confident DermaIQ verdict.';
 
   return (
     <Screen contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.kicker}>AI report</Text>
-        <Text style={styles.title}>Your premium skin analysis preview.</Text>
-        <Text style={styles.subtitle}>
-          A polished mock report structure for how DermaIQ can present a product verdict and the reasons behind it.
-        </Text>
-      </View>
-
-      <LinearGradient colors={gradients.hero} style={styles.heroCard}>
+      <LinearGradient colors={heroColors} style={styles.heroCard}>
         <View style={styles.heroTopRow}>
-          <Badge
-            label={hasMatchedIngredients ? analysis.verdict : 'Limited match'}
-            tone={hasMatchedIngredients ? verdictTone[analysis.verdict] : 'warning'}
-          />
-          <Badge label={analysis.product.category} tone="premium" />
+          <Badge label={verdictLabel} tone={verdictColorTone} />
+          <View style={styles.productMetaPill}>
+            <Text style={styles.productMetaPillText}>{toTitleCase(analysis.product.category)}</Text>
+          </View>
         </View>
 
-        <View style={styles.heroBody}>
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={40} color={colors.primaryDeep} />
-            <Text style={styles.imageLabel}>Product image</Text>
+        <View style={styles.heroContent}>
+          <View style={styles.heroHeaderBlock}>
+            <Text style={styles.heroEyebrow}>{analysis.product.brand}</Text>
+            <Text style={styles.heroTitle}>{verdictHeadline[verdictLabel]}</Text>
+            <Text style={styles.heroSummary}>{compactInsight}</Text>
           </View>
 
-          <View style={styles.productCopy}>
-            <Text style={styles.productBrand}>{analysis.product.brand}</Text>
-            <Text style={styles.productName}>{analysis.product.name}</Text>
-            <Text style={styles.productCategory}>{analysis.product.category}</Text>
+          <View style={styles.heroProductRow}>
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="sparkles-outline" size={28} color={colors.primaryDeep} />
+            </View>
+
+            <View style={styles.productCopy}>
+              <Text style={styles.productName}>{analysis.product.name}</Text>
+              <Text style={styles.productCategory}>{toTitleCase(analysis.product.category)}</Text>
+            </View>
           </View>
         </View>
       </LinearGradient>
@@ -92,61 +122,70 @@ export default function ResultScreen() {
       {hasMatchedIngredients ? (
         <>
           <PremiumCard variant="elevated" style={styles.scoreReportCard}>
-            <SectionHeader
-              title="Score overview"
-              subtitle="A quick read of safety, compatibility, and expected payoff."
-            />
-
-            <View style={styles.scoreRow}>
-              <ScoreCard label="Safety" score={analysis.safetyScore} />
-              <ScoreCard label="Skin Match" score={analysis.skinMatchScore} />
-              <ScoreCard label="Effectiveness" score={analysis.effectivenessScore} />
+            <Text style={styles.sectionEyebrow}>Overall read</Text>
+            <View style={styles.overallScoreCard}>
+              <View>
+                <Text style={styles.overallScoreLabel}>Overall Compatibility</Text>
+                <Text style={styles.overallScoreHeadline}>{verdictHeadline[analysis.verdict]}</Text>
+                <Text style={styles.overallScoreSummary}>
+                  A quick DermaIQ read blending safety, skin fit, and expected usefulness.
+                </Text>
+              </View>
+              <View style={styles.overallScoreBubble}>
+                <Text style={styles.overallScoreValue}>{overallScore}</Text>
+                <Text style={styles.overallScoreOutOf}>/100</Text>
+              </View>
             </View>
-          </PremiumCard>
 
-          <PremiumCard variant="tinted" style={styles.verdictCard}>
-            <Text style={styles.verdictEyebrow}>Summary verdict</Text>
-            <Text style={styles.verdictTitle}>{analysis.verdict}</Text>
-            <Text style={styles.verdictText}>{analysis.verdictSummary}</Text>
+            <View style={styles.detailScoreGrid}>
+              <ScoreCard label="Safety" score={analysis.safetyScore} style={styles.detailScoreCard} />
+              <ScoreCard label="Skin Match" score={analysis.skinMatchScore} style={styles.detailScoreCard} />
+              <ScoreCard label="Effectiveness" score={analysis.effectivenessScore} style={styles.detailScoreCard} />
+            </View>
           </PremiumCard>
 
           <PremiumCard style={styles.explanationCard}>
-            <SectionHeader
-              title="AI explanation"
-              subtitle="A calm editorial-style summary of what stands out in the formula."
-            />
-            <Text style={styles.explanationText}>{analysis.explanation}</Text>
-          </PremiumCard>
-
-          <PremiumCard style={styles.listCard}>
-            <SectionHeader title="Why it matches" subtitle="Signals supporting the positive fit." />
-            <View style={styles.bulletList}>
-              {analysis.whyItMatches.map((item) => (
-                <View key={item} style={styles.bulletRow}>
-                  <View style={[styles.bulletDot, styles.successDot]} />
-                  <Text style={styles.bulletText}>{item}</Text>
-                </View>
-              ))}
+            <View style={styles.insightHeader}>
+              <View style={styles.insightIcon}>
+                <Ionicons name="sparkles" size={18} color={colors.primaryDeep} />
+              </View>
+              <View style={styles.insightCopy}>
+                <Text style={styles.insightTitle}>DermaIQ Insight</Text>
+                <Text style={styles.insightSubtitle}>Your distilled AI skincare read, simplified.</Text>
+              </View>
             </View>
+            <Text style={styles.explanationText}>{analysis.verdictSummary}</Text>
           </PremiumCard>
 
-          <PremiumCard style={styles.listCard}>
-            <SectionHeader title="Possible concerns" subtitle="Important notes worth keeping in mind." />
-            <View style={styles.bulletList}>
-              {analysis.possibleConcerns.map((item) => (
-                <View key={item} style={styles.bulletRow}>
-                  <View style={[styles.bulletDot, styles.warningDot]} />
-                  <Text style={styles.bulletText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          </PremiumCard>
+          <View style={styles.splitSection}>
+            <PremiumCard style={styles.splitCard}>
+              <Text style={styles.splitTitle}>Why it works for you</Text>
+              <View style={styles.bulletList}>
+                {analysis.whyItMatches.map((item) => (
+                  <View key={item} style={styles.bulletRow}>
+                    <View style={[styles.bulletDot, styles.successDot]} />
+                    <Text style={styles.bulletText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </PremiumCard>
 
-          <PremiumCard style={styles.listCard}>
-            <SectionHeader
-              title="Recommended for your skin goals"
-              subtitle="Where this product could fit best in a goal-led routine."
-            />
+            <PremiumCard style={styles.splitCard}>
+              <Text style={styles.splitTitle}>What to watch out for</Text>
+              <View style={styles.bulletList}>
+                {analysis.possibleConcerns.map((item) => (
+                  <View key={item} style={styles.bulletRow}>
+                    <View style={[styles.bulletDot, styles.warningDot]} />
+                    <Text style={styles.bulletText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </PremiumCard>
+          </View>
+
+          <PremiumCard variant="tinted" style={styles.routineCard}>
+            <Text style={styles.sectionEyebrow}>Recommended use</Text>
+            <Text style={styles.routineTitle}>Where this fits best</Text>
             <View style={styles.recommendedGrid}>
               {analysis.recommendedFor.map((item) => (
                 <View key={item} style={styles.recommendationChip}>
@@ -170,10 +209,13 @@ export default function ResultScreen() {
       )}
 
       <PremiumCard style={styles.listCard}>
-        <SectionHeader
-          title="Matched ingredients"
-          subtitle="Recognized locally from the current DermaIQ ingredient database."
-        />
+        <View style={styles.ingredientsHeader}>
+          <View>
+            <Text style={styles.sectionEyebrow}>Ingredients</Text>
+            <Text style={styles.ingredientsTitle}>Matched ingredients</Text>
+          </View>
+          {matchedIngredients.length > 0 ? <Badge label="Recognized locally" tone="success" /> : null}
+        </View>
         <View style={styles.ingredientGrid}>
           {matchedIngredients.length > 0 ? (
             matchedIngredients.map((ingredient) => (
@@ -189,11 +231,14 @@ export default function ResultScreen() {
       </PremiumCard>
 
       <PremiumCard variant="tinted" style={styles.listCard}>
-        <SectionHeader
-          title="Unknown ingredients"
-          subtitle="These were not confidently matched yet and are shown separately so nothing feels hidden."
-        />
-        <View style={styles.ingredientGrid}>
+        <View style={styles.ingredientsHeader}>
+          <View>
+            <Text style={styles.sectionEyebrow}>Review notes</Text>
+            <Text style={styles.ingredientsTitle}>Unknown ingredients</Text>
+          </View>
+          {unknownIngredients.length === 0 ? <Badge label="Everything matched" tone="success" /> : null}
+        </View>
+        <View style={styles.unknownIngredientsList}>
           {unknownIngredients.length > 0 ? (
             unknownIngredients.map((ingredient) => (
               <View key={ingredient} style={styles.unknownIngredientCard}>
@@ -213,7 +258,7 @@ export default function ResultScreen() {
           leftIcon={<Ionicons name="create-outline" size={18} color={colors.surfaceElevated} />}
           onPress={() => router.back()}
         />
-        <PrimaryButton label="Save result" variant="secondary" />
+        <PrimaryButton label="Save result" variant="secondary" size="md" />
       </View>
     </Screen>
   );
@@ -223,24 +268,10 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.xl,
   },
-  header: {
-    gap: spacing.xs,
-  },
-  kicker: {
-    ...typography.eyebrow,
-    color: colors.primaryDeep,
-  },
-  title: {
-    ...typography.title,
-  },
-  subtitle: {
-    ...typography.body,
-    marginTop: spacing.xs,
-  },
   heroCard: {
     borderRadius: radius.xl,
     padding: spacing.xl,
-    gap: spacing.lg,
+    gap: spacing.xl,
     borderWidth: 1,
     borderColor: '#E7E0D2',
     ...shadows.medium,
@@ -251,70 +282,184 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  heroBody: {
-    gap: spacing.lg,
+  productMetaPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.64)',
+  },
+  productMetaPillText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  heroContent: {
+    gap: spacing.xl,
+  },
+  heroHeaderBlock: {
+    gap: spacing.sm,
+  },
+  heroEyebrow: {
+    ...typography.eyebrow,
+    color: colors.textMuted,
+  },
+  heroTitle: {
+    ...typography.hero,
+    fontSize: 40,
+    lineHeight: 44,
+    maxWidth: 360,
+  },
+  heroSummary: {
+    ...typography.body,
+    color: colors.text,
+    maxWidth: 360,
+  },
+  heroProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   imagePlaceholder: {
-    minHeight: 220,
-    borderRadius: radius.lg,
+    width: 72,
+    height: 72,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: 'rgba(85, 113, 94, 0.12)',
     backgroundColor: 'rgba(255,255,255,0.68)',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  imageLabel: {
-    color: colors.primaryDeep,
-    fontWeight: '700',
   },
   productCopy: {
-    gap: spacing.xs,
-  },
-  productBrand: {
-    ...typography.eyebrow,
-    color: colors.textMuted,
+    flex: 1,
+    gap: spacing.xxs,
   },
   productName: {
-    fontSize: 31,
-    lineHeight: 37,
+    fontSize: 26,
+    lineHeight: 30,
     fontWeight: '700',
     color: colors.text,
-    letterSpacing: -0.7,
+    letterSpacing: -0.5,
   },
   productCategory: {
-    ...typography.body,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   scoreReportCard: {
     gap: spacing.lg,
   },
-  scoreRow: {
+  sectionEyebrow: {
+    ...typography.eyebrow,
+    color: colors.primaryDeep,
+  },
+  overallScoreCard: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceTint,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#D8E4DA',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  overallScoreLabel: {
+    ...typography.caption,
+    color: colors.primaryDeep,
+    fontWeight: '700',
+  },
+  overallScoreHeadline: {
+    ...typography.sectionTitle,
+    marginTop: spacing.xs,
+    maxWidth: 250,
+  },
+  overallScoreSummary: {
+    ...typography.bodySmall,
+    marginTop: spacing.xs,
+    maxWidth: 260,
+  },
+  overallScoreBubble: {
+    minWidth: 104,
+    minHeight: 104,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.soft,
+  },
+  overallScoreValue: {
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.9,
+  },
+  overallScoreOutOf: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  detailScoreGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  verdictCard: {
-    gap: spacing.xs,
-  },
-  verdictEyebrow: {
-    ...typography.eyebrow,
-    color: colors.primaryDeep,
-  },
-  verdictTitle: {
-    ...typography.title,
-    fontSize: 28,
-    lineHeight: 34,
-  },
-  verdictText: {
-    ...typography.body,
-    color: colors.text,
+  detailScoreCard: {
+    minWidth: 150,
   },
   explanationCard: {
     gap: spacing.md,
   },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  insightIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightCopy: {
+    flex: 1,
+  },
+  insightTitle: {
+    ...typography.sectionTitle,
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  insightSubtitle: {
+    ...typography.caption,
+    marginTop: spacing.xxs,
+  },
   explanationText: {
-    ...typography.body,
+    ...typography.bodyStrong,
     color: colors.text,
+    lineHeight: 25,
+  },
+  splitSection: {
+    gap: spacing.md,
+  },
+  splitCard: {
+    gap: spacing.md,
+  },
+  splitTitle: {
+    ...typography.sectionTitle,
+    fontSize: 19,
+    lineHeight: 24,
+  },
+  routineCard: {
+    gap: spacing.md,
+  },
+  routineTitle: {
+    ...typography.sectionTitle,
+    fontSize: 20,
+    lineHeight: 26,
   },
   listCard: {
     gap: spacing.md,
@@ -367,36 +512,58 @@ const styles = StyleSheet.create({
   recommendedGrid: {
     gap: spacing.sm,
   },
+  ingredientsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  ingredientsTitle: {
+    ...typography.sectionTitle,
+    fontSize: 20,
+    lineHeight: 25,
+    marginTop: spacing.xxs,
+  },
   ingredientGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
   ingredientCard: {
-    minWidth: 150,
+    minWidth: 136,
     flexGrow: 1,
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   ingredientName: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '700',
     color: colors.text,
   },
   ingredientMeta: {
     ...typography.caption,
     marginTop: spacing.xxs,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  unknownIngredientsList: {
+    gap: spacing.sm,
   },
   unknownIngredientCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: '#F8EFE5',
+    borderWidth: 1,
+    borderColor: '#EBDCC9',
   },
   unknownIngredientName: {
     ...typography.bodySmall,
@@ -425,5 +592,6 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.sm,
     paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
   },
 });
