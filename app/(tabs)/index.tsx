@@ -62,35 +62,53 @@ export default function HomeScreen() {
 
   return (
     <Screen contentContainerStyle={styles.content}>
-      <View style={styles.hero}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.greeting}>Hi, {name}</Text>
-          <Text style={styles.title}>Your skincare intelligence</Text>
-          <Text style={styles.subtitle}>Scan products and get AI-powered insights tailored to you.</Text>
+      <View style={styles.topStack}>
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.greeting}>Hi, {name}</Text>
+            <Text style={styles.title}>Your skincare intelligence</Text>
+            <Text style={styles.subtitle}>Scan products and get AI-powered insights tailored to you.</Text>
+          </View>
+          <Pressable onPress={() => router.push('/(tabs)/profile')} style={({ pressed }) => [styles.avatarPressable, pressed && styles.avatarPressed]}>
+            <LinearGradient colors={gradients.accent} style={styles.avatar}>
+              <Text style={styles.avatarLabel}>{name.charAt(0)}</Text>
+            </LinearGradient>
+          </Pressable>
         </View>
-        <LinearGradient colors={gradients.accent} style={styles.avatar}>
-          <Text style={styles.avatarLabel}>{name.charAt(0)}</Text>
+
+        <LinearGradient
+          colors={['#F8FBF8', '#E6EEE5']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.primaryActionCard}
+        >
+          <View style={styles.primaryActionTopRow}>
+            <View style={styles.primaryActionIcon}>
+              <Ionicons name="scan" size={24} color={colors.primaryDeep} />
+            </View>
+          </View>
+
+          <Text style={styles.primaryActionEyebrow}>Primary action</Text>
+          <Text style={styles.primaryActionTitle}>Scan a product</Text>
+          <Text style={styles.primaryActionBody}>Paste ingredients or scan a label to get a confident DermaIQ read in seconds.</Text>
+
+          <View style={styles.primaryActionFooter}>
+            <View style={styles.primaryActionHint}>
+              <Ionicons name="sparkles-outline" size={16} color={colors.primaryDeep} />
+              <Text style={styles.primaryActionHintText}>Paste ingredients or scan a label</Text>
+            </View>
+          </View>
+
+          <View style={styles.primaryActionButtonWrap}>
+            <PrimaryButton
+              label="Analyze ingredients"
+              leftIcon={<Ionicons name="sparkles" size={18} color={colors.surfaceElevated} />}
+              rightIcon={<Ionicons name="arrow-forward" size={18} color={colors.surfaceElevated} />}
+              onPress={() => router.push('/(tabs)/scan')}
+            />
+          </View>
         </LinearGradient>
       </View>
-
-      <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryActionCard}>
-        <View style={styles.primaryActionTopRow}>
-          <View style={styles.primaryActionIcon}>
-            <Ionicons name="scan" size={24} color={colors.primaryDeep} />
-          </View>
-          <Badge label="Most used" tone="premium" />
-        </View>
-
-        <Text style={styles.primaryActionTitle}>Scan a product</Text>
-        <Text style={styles.primaryActionBody}>Paste ingredients or scan a label to get a confident DermaIQ read in seconds.</Text>
-
-        <PrimaryButton
-          label="Analyze ingredients"
-          leftIcon={<Ionicons name="sparkles" size={18} color={colors.surfaceElevated} />}
-          rightIcon={<Ionicons name="arrow-forward" size={18} color={colors.surfaceElevated} />}
-          onPress={() => router.push('/(tabs)/scan')}
-        />
-      </LinearGradient>
 
       <PremiumCard variant="tinted" style={styles.profileCard}>
         <View style={styles.profileHeader}>
@@ -105,25 +123,35 @@ export default function HomeScreen() {
 
         <View style={styles.profileMetrics}>
           <View style={styles.profileMetric}>
-            <Text style={styles.profileMetricValue}>{skinType}</Text>
+            <View style={styles.profileMetricIcon}>
+              <Ionicons name="water-outline" size={16} color={colors.primaryDeep} />
+            </View>
             <Text style={styles.profileMetricLabel}>Skin type</Text>
+            <Text style={styles.profileMetricValue}>{skinType}</Text>
           </View>
           <View style={styles.profileMetric}>
-            <Text style={styles.profileMetricValue}>{skinGoal}</Text>
+            <View style={styles.profileMetricIcon}>
+              <Ionicons name="sparkles-outline" size={16} color={colors.primaryDeep} />
+            </View>
             <Text style={styles.profileMetricLabel}>Goal</Text>
+            <Text style={styles.profileMetricValue}>{skinGoal}</Text>
           </View>
           <View style={styles.profileMetric}>
-            <Text style={styles.profileMetricValue}>Calm</Text>
+            <View style={styles.profileMetricIcon}>
+              <Ionicons name="leaf-outline" size={16} color={colors.primaryDeep} />
+            </View>
             <Text style={styles.profileMetricLabel}>Current state</Text>
+            <Text style={styles.profileMetricValue}>Calm</Text>
           </View>
         </View>
       </PremiumCard>
 
-      <PremiumCard style={styles.insightCard}>
+      <PremiumCard variant="tinted" style={styles.insightCard}>
         <View style={styles.insightIcon}>
           <Ionicons name="sparkles-outline" size={18} color={colors.primaryDeep} />
         </View>
         <View style={styles.insightCopy}>
+          <Text style={styles.insightEyebrow}>Personal insight</Text>
           <Text style={styles.sectionEyebrow}>DermaIQ Insight</Text>
           <Text style={styles.insightText}>{insightText}</Text>
         </View>
@@ -142,7 +170,7 @@ export default function HomeScreen() {
                 },
               })
             }
-            style={({ pressed }) => [pressed && styles.pressed]}
+            style={({ pressed }) => [styles.latestPressable, pressed && styles.latestPressed]}
           >
             <PremiumCard variant="elevated" style={styles.latestCard}>
               <View style={styles.latestTopRow}>
@@ -162,7 +190,7 @@ export default function HomeScreen() {
 
               <View style={styles.latestBottomRow}>
                 <Badge label={latestScan.verdict} tone={latestScan.verdict === 'Great Match' ? 'success' : 'warning'} />
-                <View style={styles.viewHint}>
+                <View style={styles.viewHintPill}>
                   <Text style={styles.viewHintText}>View full analysis</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
                 </View>
@@ -189,7 +217,7 @@ export default function HomeScreen() {
                     },
                   })
                 }
-                style={({ pressed }) => [pressed && styles.pressed]}
+                style={({ pressed }) => [styles.recentPressable, pressed && styles.recentPressed]}
               >
                 <PremiumCard style={styles.recentItem}>
                   <View style={styles.recentRow}>
@@ -207,6 +235,14 @@ export default function HomeScreen() {
               </Pressable>
             ))}
           </View>
+
+          <Pressable onPress={() => router.push('/(tabs)/scan')} style={({ pressed }) => [styles.secondaryCtaCard, pressed && styles.secondaryCtaPressed]}>
+            <View style={styles.secondaryCtaCopy}>
+              <Text style={styles.secondaryCtaTitle}>Analyze another formula</Text>
+              <Text style={styles.secondaryCtaText}>Keep building your product intelligence archive.</Text>
+            </View>
+            <Ionicons name="arrow-forward-circle-outline" size={24} color={colors.primaryDeep} />
+          </Pressable>
         </>
       ) : (
         <PremiumCard variant="elevated" style={styles.emptyHistoryCard}>
@@ -225,9 +261,9 @@ export default function HomeScreen() {
         </PremiumCard>
       )}
 
-      <PremiumCard style={styles.tipCard}>
+      <PremiumCard variant="tinted" style={styles.tipCard}>
         <View style={styles.tipIcon}>
-          <Ionicons name="leaf-outline" size={18} color={colors.primaryDeep} />
+          <Ionicons name="leaf-outline" size={20} color={colors.primaryDeep} />
         </View>
         <View style={styles.tipCopy}>
           <Text style={styles.sectionEyebrow}>Daily tip</Text>
@@ -241,6 +277,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   content: {
     gap: spacing.xl,
+  },
+  topStack: {
+    gap: spacing.xxl,
   },
   hero: {
     flexDirection: 'row',
@@ -267,6 +306,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     maxWidth: 330,
   },
+  avatarPressable: {
+    borderRadius: radius.pill,
+  },
   avatar: {
     width: 56,
     height: 56,
@@ -276,6 +318,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.6)',
     ...shadows.soft,
+  },
+  avatarPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.98 }],
   },
   avatarLabel: {
     color: colors.primaryDeep,
@@ -296,6 +342,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  primaryActionEyebrow: {
+    ...typography.eyebrow,
+    color: colors.primaryDeep,
+  },
   primaryActionIcon: {
     width: 56,
     height: 56,
@@ -313,6 +363,30 @@ const styles = StyleSheet.create({
   primaryActionBody: {
     ...typography.body,
     maxWidth: 340,
+  },
+  primaryActionFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  primaryActionHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.68)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.64)',
+  },
+  primaryActionHintText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  primaryActionButtonWrap: {
+    marginTop: spacing.xs,
   },
   sectionEyebrow: {
     ...typography.eyebrow,
@@ -340,45 +414,69 @@ const styles = StyleSheet.create({
   profileMetrics: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   profileMetric: {
     flex: 1,
     minWidth: 96,
-    padding: spacing.md,
+    padding: spacing.lg,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
+    gap: spacing.xs,
+  },
+  profileMetricIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profileMetricValue: {
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 19,
+    lineHeight: 24,
     fontWeight: '700',
     color: colors.text,
   },
   profileMetricLabel: {
     ...typography.caption,
-    marginTop: spacing.xxs,
+    color: colors.textMuted,
   },
   insightCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
+    paddingVertical: spacing.xl,
+    backgroundColor: colors.surfaceTint,
+    borderColor: '#D8E4DA',
   },
   insightIcon: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   insightCopy: {
     flex: 1,
   },
+  insightEyebrow: {
+    ...typography.eyebrow,
+    color: colors.textMuted,
+    marginBottom: spacing.xxs,
+  },
   insightText: {
     ...typography.body,
     marginTop: spacing.xs,
     color: colors.text,
+  },
+  latestPressable: {
+    borderRadius: radius.lg,
+  },
+  latestPressed: {
+    opacity: 0.97,
+    transform: [{ scale: 0.992 }],
   },
   latestCard: {
     gap: spacing.md,
@@ -432,20 +530,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  viewHint: {
+  viewHintPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceMuted,
   },
   viewHintText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.text,
+    fontWeight: '700',
   },
   recentList: {
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  recentPressable: {
+    borderRadius: radius.md,
+  },
+  recentPressed: {
+    opacity: 0.97,
   },
   recentItem: {
     paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   recentRow: {
     flexDirection: 'row',
@@ -479,6 +590,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  secondaryCtaCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  secondaryCtaPressed: {
+    opacity: 0.97,
+  },
+  secondaryCtaCopy: {
+    flex: 1,
+  },
+  secondaryCtaTitle: {
+    ...typography.bodyStrong,
+  },
+  secondaryCtaText: {
+    ...typography.caption,
+    marginTop: spacing.xxs,
+  },
   emptyHistoryCard: {
     gap: spacing.md,
     alignItems: 'flex-start',
@@ -503,12 +639,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xl,
   },
   tipIcon: {
-    width: 42,
-    height: 42,
+    width: 48,
+    height: 48,
     borderRadius: radius.sm,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -519,8 +657,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     marginTop: spacing.xs,
     color: colors.text,
-  },
-  pressed: {
-    opacity: 0.96,
   },
 });
