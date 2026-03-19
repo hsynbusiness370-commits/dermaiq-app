@@ -270,7 +270,7 @@ function buildPossibleConcerns(product: Product, profile: UserProfile) {
 }
 
 function buildRecommendations(profile: UserProfile, matchedBenefits: IngredientBenefit[]) {
-  const recommendations = profile.goals.map((goal) => {
+  const recommendations: string[] = profile.goals.map((goal) => {
     switch (goal) {
       case 'Acne':
         return 'Best suited to routines focused on blemish control and oil balance.';
