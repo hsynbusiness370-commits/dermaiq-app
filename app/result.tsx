@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
@@ -9,7 +10,9 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScoreCard } from '@/components/ScoreCard';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
-import { resultPreview } from '@/lib/mock-data';
+import { usePreferences } from '@/lib/preferences-context';
+import { analyzeProduct } from '@/lib/scoring';
+import { sampleAnalysisProduct } from '@/lib/sample-products';
 import { colors, gradients, radius, shadows, spacing, typography } from '@/lib/theme';
 
 const verdictTone = {
@@ -19,6 +22,9 @@ const verdictTone = {
 } as const;
 
 export default function ResultScreen() {
+  const { userProfile } = usePreferences();
+  const analysis = useMemo(() => analyzeProduct(sampleAnalysisProduct, userProfile), [userProfile]);
+
   return (
     <Screen contentContainerStyle={styles.content}>
       <View style={styles.header}>
@@ -31,8 +37,8 @@ export default function ResultScreen() {
 
       <LinearGradient colors={gradients.hero} style={styles.heroCard}>
         <View style={styles.heroTopRow}>
-          <Badge label={resultPreview.verdict} tone={verdictTone[resultPreview.verdict]} />
-          <Badge label={resultPreview.category} tone="premium" />
+          <Badge label={analysis.verdict} tone={verdictTone[analysis.verdict]} />
+          <Badge label={analysis.product.category} tone="premium" />
         </View>
 
         <View style={styles.heroBody}>
@@ -42,9 +48,9 @@ export default function ResultScreen() {
           </View>
 
           <View style={styles.productCopy}>
-            <Text style={styles.productBrand}>{resultPreview.brand}</Text>
-            <Text style={styles.productName}>{resultPreview.productName}</Text>
-            <Text style={styles.productCategory}>{resultPreview.category}</Text>
+            <Text style={styles.productBrand}>{analysis.product.brand}</Text>
+            <Text style={styles.productName}>{analysis.product.name}</Text>
+            <Text style={styles.productCategory}>{analysis.product.category}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -56,16 +62,16 @@ export default function ResultScreen() {
         />
 
         <View style={styles.scoreRow}>
-          <ScoreCard label="Safety" score={resultPreview.safetyScore} />
-          <ScoreCard label="Skin Match" score={resultPreview.skinMatchScore} />
-          <ScoreCard label="Effectiveness" score={resultPreview.effectivenessScore} />
+          <ScoreCard label="Safety" score={analysis.safetyScore} />
+          <ScoreCard label="Skin Match" score={analysis.skinMatchScore} />
+          <ScoreCard label="Effectiveness" score={analysis.effectivenessScore} />
         </View>
       </PremiumCard>
 
       <PremiumCard variant="tinted" style={styles.verdictCard}>
         <Text style={styles.verdictEyebrow}>Summary verdict</Text>
-        <Text style={styles.verdictTitle}>{resultPreview.verdict}</Text>
-        <Text style={styles.verdictText}>{resultPreview.verdictSummary}</Text>
+        <Text style={styles.verdictTitle}>{analysis.verdict}</Text>
+        <Text style={styles.verdictText}>{analysis.verdictSummary}</Text>
       </PremiumCard>
 
       <PremiumCard style={styles.explanationCard}>
@@ -73,13 +79,13 @@ export default function ResultScreen() {
           title="AI explanation"
           subtitle="A calm editorial-style summary of what stands out in the formula."
         />
-        <Text style={styles.explanationText}>{resultPreview.explanation}</Text>
+        <Text style={styles.explanationText}>{analysis.explanation}</Text>
       </PremiumCard>
 
       <PremiumCard style={styles.listCard}>
         <SectionHeader title="Why it matches" subtitle="Signals supporting the positive fit." />
         <View style={styles.bulletList}>
-          {resultPreview.whyItMatches.map((item) => (
+          {analysis.whyItMatches.map((item) => (
             <View key={item} style={styles.bulletRow}>
               <View style={[styles.bulletDot, styles.successDot]} />
               <Text style={styles.bulletText}>{item}</Text>
@@ -91,7 +97,7 @@ export default function ResultScreen() {
       <PremiumCard style={styles.listCard}>
         <SectionHeader title="Possible concerns" subtitle="Important notes worth keeping in mind." />
         <View style={styles.bulletList}>
-          {resultPreview.possibleConcerns.map((item) => (
+          {analysis.possibleConcerns.map((item) => (
             <View key={item} style={styles.bulletRow}>
               <View style={[styles.bulletDot, styles.warningDot]} />
               <Text style={styles.bulletText}>{item}</Text>
@@ -106,7 +112,7 @@ export default function ResultScreen() {
           subtitle="Where this product could fit best in a goal-led routine."
         />
         <View style={styles.recommendedGrid}>
-          {resultPreview.recommendedFor.map((item) => (
+          {analysis.recommendedFor.map((item) => (
             <View key={item} style={styles.recommendationChip}>
               <Ionicons name="checkmark-circle-outline" size={16} color={colors.primaryDeep} />
               <Text style={styles.recommendationText}>{item}</Text>

@@ -1,5 +1,4 @@
-export type SkinType = 'Dry' | 'Oily' | 'Combination' | 'Sensitive';
-export type SkinGoal = 'Acne' | 'Anti-aging' | 'Hydration' | 'Glow';
+import { ProductVerdict, SkinGoal, SkinType } from './types';
 
 export type ScanHistoryItem = {
   id: string;
@@ -11,7 +10,7 @@ export type ScanHistoryItem = {
   safetyScore: number;
   skinMatchScore: number;
   effectivenessScore: number;
-  verdict: 'Great Match' | 'Use with Caution' | 'Not Ideal';
+  verdict: ProductVerdict;
   status: 'Complete' | 'Needs review' | 'Saved';
 };
 
@@ -69,31 +68,3 @@ export const recentScans: ScanHistoryItem[] = [
     status: 'Needs review',
   },
 ];
-
-export const resultPreview = {
-  productName: 'Calm Balance Cleanser',
-  brand: 'Luma Skin Lab',
-  category: 'Low-foam gel cleanser',
-  safetyScore: 92,
-  skinMatchScore: 88,
-  effectivenessScore: 85,
-  verdict: 'Great Match' as const,
-  verdictSummary:
-    'This formula looks notably compatible with your profile thanks to its low-irritation cleansing base and barrier-supportive hydration.',
-  explanation:
-    'DermaIQ sees a balanced, low-irritation cleanser profile with ingredients that support a calm barrier and daily hydration. This preview UI is intentionally static until analysis logic is connected.',
-  whyItMatches: [
-    'Low-friction cleansing surfactants feel suitable for everyday use.',
-    'Hydration-focused ingredients support your glow and barrier goals.',
-    'No obvious high-risk irritants stand out in this preview.',
-  ],
-  possibleConcerns: [
-    'Sensitive skin users may still want to patch test near the jawline first.',
-    'The finish may feel slightly rich for very oily summer routines.',
-  ],
-  recommendedFor: [
-    'Daily morning cleanse',
-    'Hydration-supporting routines',
-    'Combination skin that leans dehydrated',
-  ],
-};
