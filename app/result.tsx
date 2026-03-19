@@ -35,6 +35,12 @@ const verdictGradient = {
   danger: ['#FBF5F4', '#F1E1DE'] as const,
 };
 
+const confidenceTone = {
+  High: 'success',
+  Moderate: 'warning',
+  Low: 'danger',
+} as const;
+
 function getParamValue(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -94,8 +100,9 @@ export default function ResultScreen() {
   const overallScore = Math.round(
     analysis.safetyScore * 0.4 + analysis.skinMatchScore * 0.35 + analysis.effectivenessScore * 0.25
   );
+  const confidenceProgressWidth = `${analysis.confidenceScore}%` as const;
   const compactInsight = hasMatchedIngredients
-    ? analysis.explanation
+    ? analysis.personalizedSummary
     : 'We found too few recognizable ingredients to deliver a confident DermaIQ verdict.';
 
   return (
@@ -119,6 +126,21 @@ export default function ResultScreen() {
             <Text style={styles.heroTitle}>{verdictHeadline[verdictLabel]}</Text>
             <Text style={styles.heroSummary}>{compactInsight}</Text>
           </View>
+
+          {hasMatchedIngredients ? (
+            <View style={styles.confidenceCard}>
+              <View style={styles.confidenceTopRow}>
+                <View style={styles.confidenceCopy}>
+                  <Text style={styles.confidenceLabel}>Confidence</Text>
+                  <Text style={styles.confidenceValue}>{analysis.confidenceLevel} confidence</Text>
+                </View>
+                <Badge label={`${analysis.confidenceScore}/100`} tone={confidenceTone[analysis.confidenceLevel]} />
+              </View>
+              <View style={styles.confidenceTrack}>
+                <View style={[styles.confidenceFill, { width: confidenceProgressWidth }]} />
+              </View>
+            </View>
+          ) : null}
         </View>
       </LinearGradient>
 
@@ -131,7 +153,7 @@ export default function ResultScreen() {
                 <Text style={styles.overallScoreLabel}>Overall Compatibility</Text>
                 <Text style={styles.overallScoreHeadline}>{verdictHeadline[analysis.verdict]}</Text>
                 <Text style={styles.overallScoreSummary}>
-                  A quick DermaIQ read blending safety, skin fit, and expected usefulness.
+                  {analysis.personalizedSummary}
                 </Text>
               </View>
               <View style={styles.overallScoreBubble}>
@@ -154,10 +176,10 @@ export default function ResultScreen() {
               </View>
               <View style={styles.insightCopy}>
                 <Text style={styles.insightTitle}>DermaIQ Insight</Text>
-                <Text style={styles.insightSubtitle}>Your distilled AI skincare read, simplified.</Text>
+                <Text style={styles.insightSubtitle}>AI commentary tuned to your profile and the strongest formula signals.</Text>
               </View>
             </View>
-            <Text style={styles.explanationText}>{analysis.verdictSummary}</Text>
+            <Text style={styles.explanationText}>{analysis.explanation}</Text>
           </PremiumCard>
 
           <View style={styles.splitSection}>
@@ -217,7 +239,12 @@ export default function ResultScreen() {
             <Text style={styles.sectionEyebrow}>Ingredients</Text>
             <Text style={styles.ingredientsTitle}>Matched ingredients</Text>
           </View>
-          {matchedIngredients.length > 0 ? <Badge label="Recognized locally" tone="success" /> : null}
+          {matchedIngredients.length > 0 ? (
+            <Badge
+              label={analysis.confidenceLevel === 'High' ? 'Most ingredients recognized' : 'Recognized locally'}
+              tone="success"
+            />
+          ) : null}
         </View>
         <View style={styles.ingredientGrid}>
           {matchedIngredients.length > 0 ? (
@@ -239,7 +266,14 @@ export default function ResultScreen() {
             <Text style={styles.sectionEyebrow}>Review notes</Text>
             <Text style={styles.ingredientsTitle}>Unknown ingredients</Text>
           </View>
-          {unknownIngredients.length === 0 ? <Badge label="All ingredients recognized" tone="success" /> : null}
+          {unknownIngredients.length === 0 ? (
+            <Badge label="All ingredients recognized" tone="success" />
+          ) : (
+            <Badge
+              label={analysis.confidenceLevel === 'Low' ? 'Some ingredients not fully identified' : 'Needs review'}
+              tone="warning"
+            />
+          )}
         </View>
         <View style={styles.unknownIngredientsList}>
           {unknownIngredients.length > 0 ? (
@@ -340,6 +374,42 @@ const styles = StyleSheet.create({
     color: colors.text,
     maxWidth: 360,
   },
+  confidenceCard: {
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.68)',
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  confidenceTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  confidenceCopy: {
+    flex: 1,
+  },
+  confidenceLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  confidenceValue: {
+    ...typography.bodyStrong,
+    marginTop: spacing.xxs,
+  },
+  confidenceTrack: {
+    height: 7,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(85, 113, 94, 0.14)',
+    overflow: 'hidden',
+  },
+  confidenceFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: colors.primaryDeep,
+  },
   productName: {
     fontSize: 28,
     lineHeight: 32,
@@ -382,7 +452,7 @@ const styles = StyleSheet.create({
   overallScoreSummary: {
     ...typography.bodySmall,
     marginTop: spacing.xs,
-    maxWidth: 260,
+    maxWidth: 280,
   },
   overallScoreBubble: {
     minWidth: 104,
@@ -459,6 +529,8 @@ const styles = StyleSheet.create({
   },
   routineCard: {
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: '#D8E4DA',
   },
   routineTitle: {
     ...typography.sectionTitle,
