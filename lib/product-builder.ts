@@ -1,4 +1,4 @@
-import { Product } from './types';
+import { Product, ProductCatalogEntry } from './types';
 
 function inferCategory(ingredientCount: number) {
   return ingredientCount > 0 ? 'serum' : 'unknown';
@@ -11,5 +11,18 @@ export function buildManualProduct(ingredientNames: Product['ingredients']): Pro
     brand: 'Manual Analysis',
     category: inferCategory(ingredientNames.length),
     ingredients: ingredientNames,
+  };
+}
+
+export function buildCatalogProduct(
+  catalogProduct: ProductCatalogEntry,
+  ingredients: Product['ingredients']
+): Product {
+  return {
+    id: catalogProduct.id,
+    name: catalogProduct.name,
+    brand: catalogProduct.brand,
+    category: catalogProduct.category,
+    ingredients,
   };
 }

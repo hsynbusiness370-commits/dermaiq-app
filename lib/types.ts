@@ -98,3 +98,20 @@ export type SavedAnalysis = {
   unknownIngredients: string[];
   rawInput: string;
 };
+
+export type ProductCatalogEntry = {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  ingredientList: string;
+  barcode?: string;
+  imagePlaceholder?: string;
+};
+
+export type ProductSearchResponse = {
+  query: string;
+  status: 'empty' | 'found' | 'not_found';
+  source: 'local';
+  results: ProductCatalogEntry[];
+};
