@@ -1,18 +1,5 @@
-import { ingredientDb } from './ingredient-db';
-import { ParsedIngredientResult } from './types';
-
-function normalizeIngredientName(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/\(.*?\)/g, '')
-    .replace(/[.]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-const ingredientLookup = new Map(
-  ingredientDb.map((ingredient) => [normalizeIngredientName(ingredient.name), ingredient])
-);
+import { findIngredient, normalizeIngredientName } from './ingredient-db';
+import { Ingredient, ParsedIngredientResult } from './types';
 
 export function parseIngredientList(rawIngredientText: string): ParsedIngredientResult {
   const tokens = rawIngredientText
@@ -20,12 +7,12 @@ export function parseIngredientList(rawIngredientText: string): ParsedIngredient
     .map((item) => item.trim())
     .filter(Boolean);
 
-  const matchedMap = new Map<string, (typeof ingredientDb)[number]>();
+  const matchedMap = new Map<string, Ingredient>();
   const unknownMap = new Map<string, string>();
 
   tokens.forEach((token) => {
     const normalized = normalizeIngredientName(token);
-    const ingredient = ingredientLookup.get(normalized);
+    const ingredient = findIngredient(token);
 
     if (ingredient) {
       matchedMap.set(ingredient.name, ingredient);

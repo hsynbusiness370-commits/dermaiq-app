@@ -65,7 +65,9 @@ export default function ScanScreen() {
 
       const parsed = parseIngredientList(ingredientInput);
       const product = buildManualProduct(parsed.matchedIngredients);
-      const analysis = analyzeProduct(product, userProfile);
+      const analysis = analyzeProduct(product, userProfile, {
+        unknownIngredients: parsed.unknownIngredients,
+      });
 
       navigateToAnalysis({
         analysis,
@@ -96,7 +98,9 @@ export default function ScanScreen() {
 
       const parsed = parseIngredientList(product.ingredientList);
       const builtProduct = buildCatalogProduct(product, parsed.matchedIngredients);
-      const analysis = analyzeProduct(builtProduct, userProfile);
+      const analysis = analyzeProduct(builtProduct, userProfile, {
+        unknownIngredients: parsed.unknownIngredients,
+      });
 
       navigateToAnalysis({
         analysis,

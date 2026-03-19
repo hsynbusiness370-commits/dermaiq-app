@@ -48,6 +48,7 @@ export type UserProfile = {
 };
 
 export type ProductVerdict = 'Great Match' | 'Use with Caution' | 'Not Ideal';
+export type ConfidenceLevel = 'High' | 'Moderate' | 'Low';
 
 export type ProductAnalysis = {
   product: Product;
@@ -55,6 +56,9 @@ export type ProductAnalysis = {
   skinMatchScore: number;
   effectivenessScore: number;
   verdict: ProductVerdict;
+  confidenceLevel: ConfidenceLevel;
+  confidenceScore: number;
+  personalizedSummary: string;
   verdictSummary: string;
   explanation: string;
   whyItMatches: string[];
@@ -89,6 +93,9 @@ export type SavedAnalysis = {
   safetyScore: number;
   skinMatchScore: number;
   effectivenessScore: number;
+  confidenceLevel?: ConfidenceLevel;
+  confidenceScore?: number;
+  personalizedSummary?: string;
   summary: string;
   explanation: string;
   whyItMatches: string[];

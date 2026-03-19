@@ -109,9 +109,43 @@ const ingredientCatalog: Record<string, Ingredient> = {
 };
 
 export const ingredientDb = Object.values(ingredientCatalog);
+const ingredientAliases: Record<string, string> = {
+  'vitamin b3': 'Niacinamide',
+  'nicotinamide': 'Niacinamide',
+  'sodium hyaluronate': 'Hyaluronic Acid',
+  hyaluronate: 'Hyaluronic Acid',
+  parfum: 'Fragrance',
+  perfume: 'Fragrance',
+  glycerine: 'Glycerin',
+};
+
+export function normalizeIngredientName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/[./]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const ingredientLookup = new Map<string, Ingredient>(
+  ingredientDb.map((ingredient) => [normalizeIngredientName(ingredient.name), ingredient])
+);
+
+for (const [alias, ingredientName] of Object.entries(ingredientAliases)) {
+  const ingredient = ingredientCatalog[ingredientName];
+
+  if (ingredient) {
+    ingredientLookup.set(normalizeIngredientName(alias), ingredient);
+  }
+}
+
+export function findIngredient(name: string) {
+  return ingredientLookup.get(normalizeIngredientName(name));
+}
 
 export function getIngredient(name: string): Ingredient {
-  const ingredient = ingredientCatalog[name];
+  const ingredient = findIngredient(name);
 
   if (!ingredient) {
     throw new Error(`Unknown ingredient: ${name}`);
