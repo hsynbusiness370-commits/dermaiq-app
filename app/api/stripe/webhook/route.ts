@@ -29,6 +29,7 @@ async function upsertSubscriptionFromStripe(subscription: Stripe.Subscription) {
   const priceId = subscription.items.data[0]?.price?.id;
   const planFromPrice = priceId ? getPlanIdFromPriceId(priceId) : null;
   const plan = planFromPrice ?? (subscription.metadata?.plan_id as "glow" | "pro" | undefined) ?? "glow";
+  const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
 
   const supabaseAdmin = createSupabaseAdminClient();
   await supabaseAdmin.from("subscriptions").upsert(
@@ -38,7 +39,7 @@ async function upsertSubscriptionFromStripe(subscription: Stripe.Subscription) {
       stripe_subscription_id: subscription.id,
       plan,
       status: subscription.status,
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_end: currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

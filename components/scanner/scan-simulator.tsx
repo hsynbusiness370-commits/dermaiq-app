@@ -20,6 +20,8 @@ const defaultValues: FormState = {
   sensitivity: 35,
 };
 
+type Recommendation = ReturnType<typeof buildRecommendations>[number];
+
 export function ScanSimulator() {
   const [form, setForm] = useState<FormState>(defaultValues);
   const [result, setResult] = useState<SkinAnalysisResult>(() => analyzeSkin(defaultValues));
@@ -47,7 +49,7 @@ export function ScanSimulator() {
         error?: string;
         paywall?: boolean;
         analysis?: SkinAnalysisResult;
-        recommendations?: Array<{ name: string; reason: string }>;
+        recommendations?: Recommendation[];
         scansRemaining?: number | null;
       };
 
